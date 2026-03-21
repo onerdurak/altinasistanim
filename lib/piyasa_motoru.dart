@@ -46,7 +46,9 @@ class PiyasaMotoru {
     loadMarketOrder();
     loadAllUserData().then((_) {
       loadMarketCache();
-      fetchLiveData();
+      fetchLiveData().then((_) {
+        fillHistoricalGaps();
+      });
     });
 
     _refreshTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
@@ -507,6 +509,146 @@ class PiyasaMotoru {
     if (fieldMatch == null) return 0.0;
 
     return double.tryParse(fieldMatch.group(1)?.trim() ?? '') ?? 0.0;
+  }
+
+  // ------------------------------------------------------------------
+  // GEÇMİŞ VERİ BOŞLUKLARINI DOLDUR (Binance Klines + TCMB)
+  // ------------------------------------------------------------------
+  Future<void> fillHistoricalGaps() async {
+    try {
+      // Hardcoded verilerdeki en son tarihi bul
+      List<String> allDates = assetHistory.keys.toList()..sort();
+      if (allDates.isEmpty) return;
+
+      String lastDateStr = allDates.last;
+      DateTime lastDate = DateTime.parse(lastDateStr);
+      DateTime today = DateTime.now();
+      int gapDays = today.difference(lastDate).inDays;
+
+      // 2 günden az boşluk varsa gerek yok
+      if (gapDays < 2) return;
+
+      // Zaten doldurulmuş mu kontrol et
+      final prefs = await SharedPreferences.getInstance();
+      String? lastFillDate = prefs.getString('last_gap_fill_date');
+      String todayKey = DateFormat('yyyy-MM-dd').format(today);
+      if (lastFillDate == todayKey) return;
+
+      // Binance'den günlük kapanış fiyatları çek (max 365 gün)
+      int limit = gapDays > 365 ? 365 : gapDays + 1;
+      int startTime = lastDate.millisecondsSinceEpoch;
+
+      // 5 paralel istek: USDTTRY, EURUSDT, PAXGUSDT, BTCUSDT, ETHUSDT
+      final results = await Future.wait([
+        _fetchKlines('USDTTRY', startTime, limit),
+        _fetchKlines('EURUSDT', startTime, limit),
+        _fetchKlines('PAXGUSDT', startTime, limit),
+        _fetchKlines('BTCUSDT', startTime, limit),
+        _fetchKlines('ETHUSDT', startTime, limit),
+      ]);
+
+      Map<String, double> usdRates = results[0];
+      Map<String, double> eurUsdRates = results[1];
+      Map<String, double> goldOnsUsd = results[2];
+      Map<String, double> btcUsd = results[3];
+      Map<String, double> ethUsd = results[4];
+
+      if (usdRates.isEmpty && goldOnsUsd.isEmpty) return;
+
+      // Her gün için fiyatları hesapla
+      Set<String> allNewDates = {
+        ...usdRates.keys,
+        ...goldOnsUsd.keys,
+        ...btcUsd.keys
+      };
+
+      for (String dateKey in allNewDates) {
+        // Zaten varsa atla
+        if (assetHistory.containsKey(dateKey)) continue;
+
+        double usdTry = usdRates[dateKey] ?? currentUsdRate;
+        if (usdTry <= 0) continue;
+
+        double eurUsd = eurUsdRates[dateKey] ?? 1.08;
+        double paxgUsd = goldOnsUsd[dateKey] ?? 0;
+        double btc = btcUsd[dateKey] ?? 0;
+        double eth = ethUsd[dateKey] ?? 0;
+
+        // Altın gram bazı hesapla (ons -> gram)
+        double rawBase = (paxgUsd / 31.1035) * usdTry;
+        if (rawBase <= 0) continue;
+
+        Map<String, dynamic> dPrices = {};
+        dPrices["has"] = (rawBase * 1.0767) + (rawBase * 0.01);
+        dPrices["gram"] = (rawBase * 1.0821) + (rawBase * 0.01);
+        dPrices["ceyrek"] =
+            (rawBase * 1.605 * 1.1040) + (rawBase * 1.605 * 0.01);
+        dPrices["yarim"] =
+            (rawBase * 3.210 * 1.1006) + (rawBase * 3.210 * 0.01);
+        dPrices["tam"] =
+            (rawBase * 6.420 * 1.0964) + (rawBase * 6.420 * 0.01);
+        dPrices["ata"] =
+            (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
+        dPrices["gremse"] =
+            (rawBase * 16.050 * 1.0939) + (rawBase * 16.050 * 0.01);
+        dPrices["resat"] =
+            (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
+        dPrices["hamit"] =
+            (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
+        dPrices["gram22"] =
+            (rawBase * 0.916 * 1.1134) + (rawBase * 0.916 * 0.01);
+        dPrices["yarim_gram22"] =
+            (rawBase * 0.458 * 1.1134) + (rawBase * 0.458 * 0.01);
+        dPrices["bilezik14"] =
+            (rawBase * 0.585 * 1.3242) + (rawBase * 0.585 * 0.01);
+
+        double silverBaseTL = rawBase / 66.0;
+        double eurTry = eurUsd * usdTry;
+        double gbpTry = usdTry * 1.26;
+
+        dPrices["silver"] = silverBaseTL * 1.0957;
+        dPrices["usd"] = usdTry * 1.004;
+        dPrices["eur"] = eurTry * 1.004;
+        dPrices["gbp"] = gbpTry * 1.004;
+        dPrices["ons"] = paxgUsd * usdTry;
+        dPrices["btc"] = btc * usdTry;
+        dPrices["eth"] = eth * usdTry;
+
+        assetHistory[dateKey] = dPrices;
+      }
+
+      // Kaydet
+      await prefs.setString('asset_history_v2', jsonEncode(assetHistory));
+      await prefs.setString('last_gap_fill_date', todayKey);
+    } catch (e) {
+      // Sessizce devam et, kritik değil
+    }
+  }
+
+  Future<Map<String, double>> _fetchKlines(
+      String symbol, int startTime, int limit) async {
+    Map<String, double> result = {};
+    try {
+      final uri = Uri.parse(
+          'https://api.binance.com/api/v3/klines?symbol=$symbol&interval=1d&startTime=$startTime&limit=$limit');
+      final response = await http.get(uri);
+      if (response.statusCode != 200) return result;
+
+      List<dynamic> klines = json.decode(response.body);
+      for (var kline in klines) {
+        // kline[0] = openTime (ms), kline[4] = close price
+        int openTimeMs = kline[0];
+        DateTime date = DateTime.fromMillisecondsSinceEpoch(openTimeMs);
+        String dateKey = DateFormat('yyyy-MM-dd').format(date);
+        double closePrice = double.tryParse(kline[4].toString()) ?? 0.0;
+        if (closePrice > 0) {
+          result[dateKey] = closePrice;
+        }
+      }
+    } catch (e) {
+      // Sessizce devam et
+    }
+    return result;
   }
 
   double _safeDouble(dynamic value) {

@@ -137,6 +137,11 @@ class PiyasaMotoru {
       // İnternet var mı yok mu kontrolü
       isLiveConnection = isBinanceSuccess || isTruncgilSuccess;
 
+      // 3. ÜÇÜNCÜ MOTOR: TCMB (Döviz kurlarını TCMB'den doğrula/güncelle)
+      if (isLiveConnection) {
+        await _fetchFromTcmbEngine();
+      }
+
       // Eğer sistem Binance'den değil de yedek motor Truncgil'den çalıştıysa,
       // Truncgil kriptoları eksik verebilir, bu yüzden sadece kripto için Binance'i tekrar yokla
       if (!isBinanceSuccess && isLiveConnection) {
@@ -449,6 +454,59 @@ class PiyasaMotoru {
         }
       }
     } catch (e) {}
+  }
+
+  // ------------------------------------------------------------------
+  // ÜÇÜNCÜ MOTOR: TCMB (Döviz Kurları - API Key Gerektirmez)
+  // ------------------------------------------------------------------
+  Future<bool> _fetchFromTcmbEngine() async {
+    try {
+      final response = await http.get(
+          Uri.parse('https://www.tcmb.gov.tr/kurlar/today.xml'),
+          headers: {"User-Agent": "Mozilla/5.0"});
+      if (response.statusCode != 200) return false;
+
+      String body = response.body;
+
+      double usdSelling = _extractTcmbRate(body, 'USD', 'ForexSelling');
+      double usdBuying = _extractTcmbRate(body, 'USD', 'ForexBuying');
+      double eurSelling = _extractTcmbRate(body, 'EUR', 'ForexSelling');
+      double eurBuying = _extractTcmbRate(body, 'EUR', 'ForexBuying');
+      double gbpSelling = _extractTcmbRate(body, 'GBP', 'ForexSelling');
+      double gbpBuying = _extractTcmbRate(body, 'GBP', 'ForexBuying');
+
+      if (usdSelling <= 0) return false;
+
+      currentUsdRate = usdSelling;
+
+      for (var asset in market) {
+        if (asset.id == 'usd') {
+          asset.applyNewPrices(usdSelling, usdBuying, asset.changeRate);
+        } else if (asset.id == 'eur') {
+          asset.applyNewPrices(eurSelling, eurBuying, asset.changeRate);
+        } else if (asset.id == 'gbp') {
+          asset.applyNewPrices(gbpSelling, gbpBuying, asset.changeRate);
+        }
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  double _extractTcmbRate(String xml, String currencyCode, String field) {
+    RegExp currencyRegex = RegExp(
+        'CurrencyCode="$currencyCode"[^>]*>([\\s\\S]*?)</Currency>',
+        multiLine: true);
+    Match? currencyMatch = currencyRegex.firstMatch(xml);
+    if (currencyMatch == null) return 0.0;
+
+    String currencyBlock = currencyMatch.group(1) ?? '';
+    RegExp fieldRegex = RegExp('<$field>([^<]+)</$field>');
+    Match? fieldMatch = fieldRegex.firstMatch(currencyBlock);
+    if (fieldMatch == null) return 0.0;
+
+    return double.tryParse(fieldMatch.group(1)?.trim() ?? '') ?? 0.0;
   }
 
   double _safeDouble(dynamic value) {

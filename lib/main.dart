@@ -379,15 +379,14 @@ class _MainLayoutState extends State<MainLayout> {
           onMoreTap: _openFullMarket,
           onAssetTap: (a) => _showAssetDetail(context, a),
           onStatTap: (title, dataKey, color) {
-            showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (c) => HistoryChartPage(
-                    title: title,
-                    dataKey: dataKey,
-                    historyData: _motor.historyData,
-                    color: color));
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (c) => HistoryChartPage(
+                        title: title,
+                        dataKey: dataKey,
+                        historyData: _motor.historyData,
+                        color: color)));
           },
           isPrimaryEngineActive: _motor.isPrimaryEngineActive,
           onRefresh: () async => await _motor.fetchLiveData(silent: false)),

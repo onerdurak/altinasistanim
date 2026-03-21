@@ -75,7 +75,7 @@ class PiyasaMotoru {
 
   void _startTickerSimulation() {
     _simulationTimer?.cancel();
-    _simulationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _simulationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!isLiveConnection) return;
 
       List<int> allIndices = List.generate(market.length, (i) => i)
@@ -876,9 +876,30 @@ class PiyasaMotoru {
         double gbpTry = usdTry * 1.26;
         double ethUsd = btcUsd * 0.05;
         double goldOns = (rawBase / usdTry) * 31.1035;
-        double silverBaseTL = rawBase / 66.0;
 
-        dPrices["silver"] = silverBaseTL * 1.0957;
+        // Gümüş: Gerçek veri varsa kullan, yoksa altından tahmin et
+        double silverPrice = 0.0;
+        if (realSilverHistory.containsKey(dateKey)) {
+          silverPrice = realSilverHistory[dateKey]!;
+        } else {
+          List<String> sortedSilverDates = realSilverHistory.keys.toList()..sort();
+          String? closestDate;
+          for (var d in sortedSilverDates) {
+            if (DateTime.parse(d).isAfter(targetDate)) {
+              closestDate = d;
+              break;
+            }
+          }
+          if (closestDate != null &&
+              DateTime.parse(closestDate).difference(targetDate).inDays.abs() < 7) {
+            silverPrice = realSilverHistory[closestDate]!;
+          } else {
+            double silverBaseTL = rawBase / 66.0;
+            silverPrice = silverBaseTL * 1.0957;
+          }
+        }
+
+        dPrices["silver"] = silverPrice;
         dPrices["usd"] = usdTry * 1.004;
         dPrices["eur"] = eurTry * 1.004;
         dPrices["gbp"] = gbpTry * 1.004;
@@ -918,12 +939,22 @@ class PiyasaMotoru {
     String todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
     int index =
         historyData.indexWhere((element) => element['date'] == todayKey);
+    // Kasadaki emtia isimlerini not olarak kaydet
+    List<String> walletNotes = [];
+    wallet.assets.forEach((assetId, qty) {
+      try {
+        var asset = market.firstWhere((e) => e.id == assetId);
+        walletNotes.add("${formatNumber(qty)} ${asset.name}");
+      } catch (e) {}
+    });
+
     Map<String, dynamic> todayData = {
       'date': todayKey,
       'net': (wVal + cVal - dVal),
       'wallet': wVal,
       'credit': cVal,
-      'debt': dVal
+      'debt': dVal,
+      'note': walletNotes.join(', '),
     };
     if (index != -1) {
       historyData[index] = todayData;

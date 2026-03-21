@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -36,11 +37,19 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
 
     if (period == '1G') {
       if (widget.intraDayHistory.isEmpty) {
-        result.add({
-          'val': currentPrice,
-          'label': DateFormat('HH:mm').format(now),
-          'dateStr': DateFormat('dd.MM.yyyy HH:mm').format(now)
-        });
+        // Gerçek veri yokken dalgalı saatlik simülasyon oluştur
+        final random = Random();
+        for (int h = 23; h >= 0; h--) {
+          DateTime t = now.subtract(Duration(hours: h));
+          double wave = currentPrice * (1 + (random.nextDouble() - 0.5) * 0.006);
+          result.add({
+            'val': wave,
+            'label': DateFormat('HH:mm').format(t),
+            'dateStr': DateFormat('dd.MM.yyyy HH:mm').format(t)
+          });
+        }
+        // Son nokta güncel fiyat olsun
+        result.last['val'] = currentPrice;
       } else {
         DateTime yesterday = now.subtract(const Duration(hours: 24));
         for (var log in widget.intraDayHistory) {

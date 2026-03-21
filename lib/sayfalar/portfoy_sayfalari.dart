@@ -66,17 +66,10 @@ class _ListingPageState extends State<ListingPage> {
 
             return Dismissible(
               key: Key(item.id),
-              direction: DismissDirection.horizontal,
+              direction: DismissDirection.startToEnd,
               background: Container(
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.only(left: 20),
-                  decoration: BoxDecoration(
-                      color: AppTheme.neonRed,
-                      borderRadius: BorderRadius.circular(16)),
-                  child: const Icon(Icons.delete, color: Colors.white)),
-              secondaryBackground: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
                   decoration: BoxDecoration(
                       color: AppTheme.neonRed,
                       borderRadius: BorderRadius.circular(16)),
@@ -710,17 +703,10 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
 
                   return Dismissible(
                     key: Key(id),
-                    direction: DismissDirection.horizontal,
+                    direction: DismissDirection.startToEnd,
                     background: Container(
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.only(left: 20),
-                        decoration: BoxDecoration(
-                            color: AppTheme.neonRed,
-                            borderRadius: BorderRadius.circular(12)),
-                        child: const Icon(Icons.delete, color: Colors.white)),
-                    secondaryBackground: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
                         decoration: BoxDecoration(
                             color: AppTheme.neonRed,
                             borderRadius: BorderRadius.circular(12)),

@@ -451,6 +451,10 @@ class HistoryInteractivePainter extends CustomPainter {
             "${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}";
       } catch (e) {}
 
+      // Not bilgisi varsa göster
+      String? noteText = data[touchedIndex!]['note']?.toString();
+      bool hasNote = noteText != null && noteText.isNotEmpty;
+
       final tp = TextPainter(
         text: TextSpan(children: [
           TextSpan(
@@ -466,11 +470,19 @@ class HistoryInteractivePainter extends CustomPainter {
                   color: Colors.white,
                   fontSize: 15,
                   fontWeight: FontWeight.w900)),
+          if (hasNote)
+            TextSpan(
+                text: "\n$noteText",
+                style: const TextStyle(
+                    color: Color(0xFFFFD700),
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    height: 1.6)),
         ]),
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center,
       );
-      tp.layout();
+      tp.layout(maxWidth: 200);
       double boxWidth = tp.width + 20;
       double boxHeight = tp.height + 12;
       double boxX = tX - (boxWidth / 2);

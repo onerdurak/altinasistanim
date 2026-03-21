@@ -214,7 +214,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ? "Tüm Piyasa >>"
                           : "Tüm Piyasa >",
                       style:
-                          const TextStyle(color: Colors.white54, fontSize: 12)))
+                          const TextStyle(color: AppTheme.goldMain, fontSize: 12)))
             ]),
             QuickAccessGrid(
                 market: widget.market, onAssetTap: widget.onAssetTap),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,6 +26,21 @@ class FullScreenAssetPage extends StatefulWidget {
 class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
   String _selectedPeriod = '1A';
   bool _showHistory = false;
+  Timer? _priceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _priceTimer?.cancel();
+    super.dispose();
+  }
 
   List<Map<String, dynamic>> _generateChartData(String period) {
     List<Map<String, dynamic>> result = [];

@@ -271,14 +271,26 @@ class AboutPage extends StatelessWidget {
               Icons.dashboard_customize,
               "Ana Ekrana Emtia Ekleme/Çıkarma",
               "Ana ekrandaki boş '+' kutucuklarına tıklayarak favori emtialarınızı hızlı erişime ekleyebilirsiniz. Eklediğiniz emtiaları kaldırmak için ise, o emtiaya basılı tutunca sağ üst köşesinde beliren 'x' ikonuna tıklamanız yeterlidir."),
+          _buildGuideSection(
+              Icons.show_chart_rounded,
+              "Emtia Grafik ve Canlı Fiyat Takibi",
+              "Ana ekrandan veya Tüm Piyasa listesinden herhangi bir emtiaya tıklayarak detay ekranını açabilirsiniz. Bu ekranda alış ve satış fiyatları canlı olarak güncellenir. 1G (günlük), 1A (aylık) ve 1Y (yıllık) periyotlar arasında geçiş yaparak fiyat grafiğini inceleyebilirsiniz. Grafik üzerinde parmağınızı gezdirerek geçmiş fiyatları görebilirsiniz."),
+          _buildGuideSection(
+              Icons.history_rounded,
+              "Geçmiş Verileri Görüntüleme",
+              "Emtia detay ekranında 'GEÇMİŞ' butonuna tıklayarak seçili dönemdeki tüm fiyat geçmişini liste halinde görüntüleyebilirsiniz. Ana ekrandaki Kasa, Alacak ve Borç tutarlarına tıklayarak da finansal geçmişinizi grafik ve liste olarak takip edebilirsiniz."),
           _buildGuideSection(Icons.swap_vert, "Piyasa Sıralamasını Değiştirme",
               "'Tüm Piyasa' ekranında, her emtianın sağ tarafında bulunan altı noktalı ikona (sürükle bırak) basılı tutarak listeyi kendi zevkinize göre sıralayabilirsiniz."),
           _buildGuideSection(
               Icons.swipe_left,
               "Kayıtları Hızlı Silme (Kaydırarak)",
               "Borçlar, Alacaklar veya Kasa detay ekranlarında, eklediğiniz bir kişiyi veya varlığı silmek için o kaydı sağa veya sola doğru hızlıca kaydırmanız (swipe) yeterlidir."),
-          _buildGuideSection(Icons.lock_outline, "Güvenlik ve Yedek Şifre",
-              "Uygulama öncelikle cihazınızın Biyometrik (Parmak İzi / Yüz Tanıma) sistemini kullanır."),
+          _buildGuideSection(
+              Icons.visibility_outlined,
+              "Bakiye Gizleme",
+              "Ana ekrandaki göz ikonuna tıklayarak finansal verilerinizi gizleyebilir veya tekrar gösterebilirsiniz. Böylece başkalarının yanında ekranınız güvenle açık kalabilir."),
+          _buildGuideSection(Icons.lock_outline, "Güvenlik ve Kilit",
+              "Uygulama öncelikle cihazınızın Biyometrik (Parmak İzi / Yüz Tanıma) sistemini kullanır. Sağ üst köşedeki kilit ikonuyla uygulamayı kilitleyebilir, verilerinizi meraklı gözlerden koruyabilirsiniz."),
           const SizedBox(height: 15),
           const Text("Geliştirici Bildirimi",
               style: TextStyle(

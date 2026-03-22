@@ -222,7 +222,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 margin: const EdgeInsets.only(top: 30, bottom: 20),
                 alignment: Alignment.center,
                 child: const Text(
-                    "Piyasa verileri temsilidir ve sadece bilgi amaçlı sunulmaktadır.",
+                    "Piyasa verileri ve grafikler temsilidir, sadece bilgi amaçlı sunulmaktadır.",
                     style: TextStyle(
                         color: Colors.white38,
                         fontSize: 10,

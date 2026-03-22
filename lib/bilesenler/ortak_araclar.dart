@@ -55,45 +55,45 @@ class AssetCoin extends StatelessWidget {
     switch (type.category) {
       case 'gold':
         return _CoinStyle(
-            const Color(0xFFFFF8E1), const Color(0xFFE6A700),
-            Colors.black87, type.label);
+            const Color(0xFFDAA520), const Color(0xFF8B6914),
+            Colors.white, type.label);
       case 'bracelet':
         return _CoinStyle(
-            const Color(0xFFFFECB3), const Color(0xFFD4950C),
-            Colors.black87, type.label);
+            const Color(0xFFC8860A), const Color(0xFF7A5200),
+            Colors.white, type.label);
       case 'silver':
         return _CoinStyle(
-            const Color(0xFFE8EAF6), const Color(0xFF607D8B),
+            const Color(0xFF90A4AE), const Color(0xFF37474F),
             Colors.white, type.label);
       case 'currency':
         if (type.id == 'usd') {
           return _CoinStyle(
-              const Color(0xFFC8E6C9), const Color(0xFF2E7D32),
+              const Color(0xFF43A047), const Color(0xFF1B5E20),
               Colors.white, '\$');
         } else if (type.id == 'gbp') {
           return _CoinStyle(
-              const Color(0xFFF3E5F5), const Color(0xFF6A1B9A),
+              const Color(0xFF8E24AA), const Color(0xFF4A148C),
               Colors.white, '£');
         }
         return _CoinStyle(
-            const Color(0xFFBBDEFB), const Color(0xFF1565C0),
+            const Color(0xFF1E88E5), const Color(0xFF0D47A1),
             Colors.white, '€');
       case 'crypto':
         if (type.id == 'btc') {
           return _CoinStyle(
-              const Color(0xFFFFE0B2), const Color(0xFFE67E00),
+              const Color(0xFFF7931A), const Color(0xFFB5690A),
               Colors.white, '₿');
         }
         return _CoinStyle(
-            const Color(0xFFE0E0E0), const Color(0xFF455A64),
+            const Color(0xFF546E7A), const Color(0xFF263238),
             Colors.white, 'Ξ');
       case 'ons':
         return _CoinStyle(
-            const Color(0xFFFFF3E0), const Color(0xFFBF8500),
-            Colors.black87, type.label);
+            const Color(0xFFCC8800), const Color(0xFF7A5200),
+            Colors.white, type.label);
       default:
         return _CoinStyle(
-            const Color(0xFFFFECB3), const Color(0xFFE65100),
+            const Color(0xFFE65100), const Color(0xFF8B3000),
             Colors.white, type.label);
     }
   }

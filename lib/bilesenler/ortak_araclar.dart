@@ -55,11 +55,11 @@ class AssetCoin extends StatelessWidget {
     switch (type.category) {
       case 'gold':
         return _CoinStyle(
-            const Color(0xFFDAA520), const Color(0xFF8B6914),
+            const Color(0xFFB8860B), const Color(0xFF6B4E00),
             Colors.white, type.label);
       case 'bracelet':
         return _CoinStyle(
-            const Color(0xFFC8860A), const Color(0xFF7A5200),
+            const Color(0xFFA07000), const Color(0xFF5C3D00),
             Colors.white, type.label);
       case 'silver':
         return _CoinStyle(

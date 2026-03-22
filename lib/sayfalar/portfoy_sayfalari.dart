@@ -109,16 +109,41 @@ class _ListingPageState extends State<ListingPage> {
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                Text(item.personName,
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                        child: Text(item.personName,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold),
+                                            overflow: TextOverflow.ellipsis)),
+                                    Text(
+                                        "${item.date.day.toString().padLeft(2, '0')}.${item.date.month.toString().padLeft(2, '0')}.${item.date.year}",
+                                        style: const TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 11)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                    item.assets.entries.map((e) {
+                                      try {
+                                        var asset = widget.market
+                                            .firstWhere((g) => g.id == e.key);
+                                        return "${formatNumber(e.value)} ${asset.name}";
+                                      } catch (_) {
+                                        return "${formatNumber(e.value)} ?";
+                                      }
+                                    }).join(", "),
                                     style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
-                                    overflow: TextOverflow.ellipsis),
-                                Text("${item.assets.length} Çeşit Varlık",
-                                    style: const TextStyle(
-                                        color: Colors.grey, fontSize: 12))
+                                        color: Colors.grey, fontSize: 12),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2),
                               ])),
+                          const SizedBox(width: 10),
                           Text(currency.format(val),
                               style: const TextStyle(
                                   color: Colors.white,

@@ -903,9 +903,9 @@ class PiyasaMotoru {
         dPrices["usd"] = usdTry * 1.004;
         dPrices["eur"] = eurTry * 1.004;
         dPrices["gbp"] = gbpTry * 1.004;
-        dPrices["ons"] = goldOns * usdTry;
-        dPrices["btc"] = btcUsd * usdTry;
-        dPrices["eth"] = ethUsd * usdTry;
+        dPrices["ons"] = goldOns;
+        dPrices["btc"] = btcUsd;
+        dPrices["eth"] = ethUsd;
 
         assetHistory[dateKey] = dPrices;
       });

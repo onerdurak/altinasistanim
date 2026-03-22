@@ -341,7 +341,7 @@ class _MainLayoutState extends State<MainLayout> {
       return ClipRect(
         child: Stack(children: [
           page,
-          Container(color: AppTheme.bg.withOpacity(0.98)),
+          Container(color: AppTheme.bg),
           Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
             IconButton(

@@ -3,7 +3,7 @@ workflows:
     name: iOS TestFlight Derlemesi
     instance_type: mac_mini_m2
     integrations:
-      app_store_connect: codemegic
+      app_store_connect: posof
     environment:
       flutter: stable
     scripts:

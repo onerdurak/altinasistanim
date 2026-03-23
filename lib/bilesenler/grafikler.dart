@@ -451,13 +451,17 @@ class HistoryInteractivePainter extends CustomPainter {
             "${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}";
       } catch (e) {}
 
-      // Bölüme özel not bilgisi varsa göster
-      String noteKey = '${dataKey}_note';
-      String? noteText = (data[touchedIndex!][noteKey] ?? data[touchedIndex!]['note'])?.toString();
-      if (noteText != null) {
-        noteText = noteText.replaceAll(', ', '\n');
+      // Bölüme özel not bilgisi varsa göster (net için gösterme)
+      bool hasNote = false;
+      String? noteText;
+      if (dataKey != 'net') {
+        String noteKey = '${dataKey}_note';
+        noteText = (data[touchedIndex!][noteKey] ?? data[touchedIndex!]['note'])?.toString();
+        if (noteText != null) {
+          noteText = noteText.replaceAll(', ', '\n');
+        }
+        hasNote = noteText != null && noteText.isNotEmpty;
       }
-      bool hasNote = noteText != null && noteText.isNotEmpty;
 
       final tp = TextPainter(
         text: TextSpan(children: [

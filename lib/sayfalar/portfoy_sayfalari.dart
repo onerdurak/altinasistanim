@@ -109,24 +109,12 @@ class _ListingPageState extends State<ListingPage> {
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                        child: Text(item.personName,
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold),
-                                            overflow: TextOverflow.ellipsis)),
-                                    Text(
-                                        "${item.date.day.toString().padLeft(2, '0')}.${item.date.month.toString().padLeft(2, '0')}.${item.date.year}",
-                                        style: const TextStyle(
-                                            color: Colors.white38,
-                                            fontSize: 11)),
-                                  ],
-                                ),
+                                Text(item.personName,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.ellipsis),
                                 const SizedBox(height: 4),
                                 Text(
                                     item.assets.entries.map((e) {

@@ -454,6 +454,9 @@ class HistoryInteractivePainter extends CustomPainter {
       // Bölüme özel not bilgisi varsa göster
       String noteKey = '${dataKey}_note';
       String? noteText = (data[touchedIndex!][noteKey] ?? data[touchedIndex!]['note'])?.toString();
+      if (noteText != null) {
+        noteText = noteText.replaceAll(', ', '\n');
+      }
       bool hasNote = noteText != null && noteText.isNotEmpty;
 
       final tp = TextPainter(

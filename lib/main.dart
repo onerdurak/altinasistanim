@@ -14,7 +14,7 @@ import 'sayfalar/guvenlik_sayfalari.dart';
 import 'sayfalar/piyasa_sayfalari.dart';
 import 'sayfalar/portfoy_sayfalari.dart';
 import 'sayfalar/destek_sayfasi.dart';
-import 'bilesenler/grafikler.dart'; // <-- HATA VEREN KISIM BURASIYDI, DÜZELTİLDİ
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -341,7 +341,7 @@ class _MainLayoutState extends State<MainLayout> {
       return ClipRect(
         child: Stack(children: [
           page,
-          Container(color: AppTheme.bg.withOpacity(0.98)),
+          Container(color: AppTheme.bg),
           Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
             IconButton(

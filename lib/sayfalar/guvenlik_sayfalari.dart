@@ -282,9 +282,9 @@ class AboutPage extends StatelessWidget {
           _buildGuideSection(Icons.swap_vert, "Piyasa Sıralamasını Değiştirme",
               "'Tüm Piyasa' ekranında, her emtianın sağ tarafında bulunan altı noktalı ikona (sürükle bırak) basılı tutarak listeyi kendi zevkinize göre sıralayabilirsiniz."),
           _buildGuideSection(
-              Icons.swipe_left,
-              "Kayıtları Hızlı Silme (Kaydırarak)",
-              "Borçlar, Alacaklar veya Kasa detay ekranlarında, eklediğiniz bir kişiyi veya varlığı silmek için o kaydı sağa veya sola doğru hızlıca kaydırmanız (swipe) yeterlidir."),
+              Icons.touch_app_rounded,
+              "Kayıtları Silme",
+              "Borçlar ve Alacaklar listelerinde bir kişiyi silmek için basılı tutun, beliren silme ikonuna dokunun. Alacak/Borç detay ekranlarında ise varlıkları hem basılı tutarak hem de sağa kaydırarak (swipe) silebilirsiniz. Kasa ekranındaki varlıkları silmek için basılı tutmanız yeterlidir."),
           _buildGuideSection(
               Icons.visibility_outlined,
               "Bakiye Gizleme",

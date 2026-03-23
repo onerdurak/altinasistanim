@@ -852,17 +852,23 @@ class PiyasaMotoru {
           btcUsd = realBtcHistory[dateKey]!;
         } else {
           List<String> sortedBtcDates = realBtcHistory.keys.toList()..sort();
-          String? closestDate;
+          String? before;
+          String? after;
           for (var d in sortedBtcDates) {
-            if (DateTime.parse(d).isAfter(targetDate)) {
-              closestDate = d;
+            if (DateTime.parse(d).isBefore(targetDate) ||
+                DateTime.parse(d).isAtSameMomentAs(targetDate)) {
+              before = d;
+            } else {
+              after = d;
               break;
             }
           }
-          if (closestDate != null &&
-              DateTime.parse(closestDate).difference(targetDate).inDays.abs() <
-                  7) {
-            btcUsd = realBtcHistory[closestDate]!;
+          if (before != null &&
+              targetDate.difference(DateTime.parse(before)).inDays <= 30) {
+            btcUsd = realBtcHistory[before]!;
+          } else if (after != null &&
+              DateTime.parse(after).difference(targetDate).inDays <= 30) {
+            btcUsd = realBtcHistory[after]!;
           } else {
             int daysSince2015 =
                 targetDate.difference(DateTime(2015, 1, 1)).inDays;
@@ -883,16 +889,23 @@ class PiyasaMotoru {
           silverPrice = realSilverHistory[dateKey]!;
         } else {
           List<String> sortedSilverDates = realSilverHistory.keys.toList()..sort();
-          String? closestDate;
+          String? before;
+          String? after;
           for (var d in sortedSilverDates) {
-            if (DateTime.parse(d).isAfter(targetDate)) {
-              closestDate = d;
+            if (DateTime.parse(d).isBefore(targetDate) ||
+                DateTime.parse(d).isAtSameMomentAs(targetDate)) {
+              before = d;
+            } else {
+              after = d;
               break;
             }
           }
-          if (closestDate != null &&
-              DateTime.parse(closestDate).difference(targetDate).inDays.abs() < 7) {
-            silverPrice = realSilverHistory[closestDate]!;
+          if (before != null &&
+              targetDate.difference(DateTime.parse(before)).inDays <= 30) {
+            silverPrice = realSilverHistory[before]!;
+          } else if (after != null &&
+              DateTime.parse(after).difference(targetDate).inDays <= 30) {
+            silverPrice = realSilverHistory[after]!;
           } else {
             double silverBaseTL = rawBase / 66.0;
             silverPrice = silverBaseTL * 1.0957;
@@ -903,9 +916,9 @@ class PiyasaMotoru {
         dPrices["usd"] = usdTry * 1.004;
         dPrices["eur"] = eurTry * 1.004;
         dPrices["gbp"] = gbpTry * 1.004;
-        dPrices["ons"] = goldOns * usdTry;
-        dPrices["btc"] = btcUsd * usdTry;
-        dPrices["eth"] = ethUsd * usdTry;
+        dPrices["ons"] = goldOns;
+        dPrices["btc"] = btcUsd;
+        dPrices["eth"] = ethUsd;
 
         assetHistory[dateKey] = dPrices;
       });
@@ -939,13 +952,41 @@ class PiyasaMotoru {
     String todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
     int index =
         historyData.indexWhere((element) => element['date'] == todayKey);
-    // Her bölüm için emtia notlarını ayrı kaydet
+    // Önceki günün kasa varlıklarını bul (sadece eklenen farkı göster)
+    Map<String, double> prevWalletAssets = {};
+    // Bugünün mevcut kaydını atla, ondan önceki son kaydı al
+    for (int i = historyData.length - 1; i >= 0; i--) {
+      if (historyData[i]['date'] != todayKey && historyData[i]['wallet_assets'] != null) {
+        Map<String, dynamic> raw = historyData[i]['wallet_assets'] is Map
+            ? historyData[i]['wallet_assets']
+            : {};
+        raw.forEach((k, v) => prevWalletAssets[k] = (v as num).toDouble());
+        break;
+      }
+    }
+
+    // Her bölüm için emtia notlarını ayrı kaydet (sadece eklenenler)
     List<String> walletNotes = [];
     wallet.assets.forEach((assetId, qty) {
       try {
         var asset = market.firstWhere((e) => e.id == assetId);
-        walletNotes.add("${formatNumber(qty)} ${asset.name}");
+        double prev = prevWalletAssets[assetId] ?? 0;
+        double diff = qty - prev;
+        if (diff > 0.001) {
+          walletNotes.add("+${formatNumber(diff)} ${asset.name}");
+        } else if (diff < -0.001) {
+          walletNotes.add("${formatNumber(diff)} ${asset.name}");
+        }
       } catch (e) {}
+    });
+    // Silinen varlıkları da kontrol et
+    prevWalletAssets.forEach((assetId, prevQty) {
+      if (!wallet.assets.containsKey(assetId) && prevQty > 0.001) {
+        try {
+          var asset = market.firstWhere((e) => e.id == assetId);
+          walletNotes.add("-${formatNumber(prevQty)} ${asset.name}");
+        } catch (e) {}
+      }
     });
 
     List<String> creditNotes = [];
@@ -986,6 +1027,7 @@ class PiyasaMotoru {
       'wallet_note': walletNotes.join('\n'),
       'credit_note': creditNotes.join('\n'),
       'debt_note': debtNotes.join('\n'),
+      'wallet_assets': Map<String, double>.from(wallet.assets),
     };
     if (index != -1) {
       historyData[index] = todayData;

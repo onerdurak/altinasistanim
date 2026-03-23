@@ -64,18 +64,7 @@ class _ListingPageState extends State<ListingPage> {
             double val = item.getTotalValue(widget.market);
             bool isEditing = _editingItemId == item.id;
 
-            return Dismissible(
-              key: Key(item.id),
-              direction: DismissDirection.startToEnd,
-              background: Container(
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.only(left: 20),
-                  decoration: BoxDecoration(
-                      color: AppTheme.neonRed,
-                      borderRadius: BorderRadius.circular(16)),
-                  child: const Icon(Icons.delete, color: Colors.white)),
-              onDismissed: (direction) => widget.onDelete(item),
-              child: GestureDetector(
+            return GestureDetector(
                 onLongPress: () {
                   HapticFeedback.heavyImpact();
                   setState(() => _editingItemId = item.id);
@@ -142,7 +131,6 @@ class _ListingPageState extends State<ListingPage> {
                                       color: Colors.white, size: 20)))),
                   ],
                 ),
-              ),
             );
           },
         ),
@@ -466,6 +454,7 @@ class PortfolioDetail extends StatefulWidget {
 
 class _PortfolioDetailState extends State<PortfolioDetail> {
   Timer? _localTimer;
+  String? _deletingAssetId;
 
   @override
   void initState() {
@@ -607,6 +596,11 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
     );
   }
 
+  void _confirmDeleteAsset(String assetId) {
+    HapticFeedback.heavyImpact();
+    setState(() => _deletingAssetId = assetId);
+  }
+
   void _editQuantity(String assetId, double currentQty) {
     TextEditingController qtyCtrl =
         TextEditingController(text: formatNumber(currentQty));
@@ -699,6 +693,136 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                   double itemPrice =
                       widget.isWallet ? asset.buyPrice : asset.sellPrice;
 
+                  bool isDeleting = _deletingAssetId == id;
+
+                  Widget assetTile = GestureDetector(
+                    onLongPress: () => _confirmDeleteAsset(id),
+                    onTap: () {
+                      if (isDeleting) {
+                        setState(() => _deletingAssetId = null);
+                      }
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                              color: AppTheme.card,
+                              borderRadius: BorderRadius.circular(12)),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => widget.onAssetTap(asset),
+                                child: Row(children: [
+                                  AssetCoin(type: asset),
+                                  const SizedBox(width: 15),
+                                  Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(asset.name,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                            currency
+                                                .format(qty * itemPrice),
+                                            style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 13))
+                                      ])
+                                ]),
+                              ),
+                              const Spacer(),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: 20,
+                                      icon: const Icon(
+                                          Icons.remove_circle_outline,
+                                          color: AppTheme.neonRed),
+                                      onPressed: () {
+                                        setState(() {
+                                          if (qty > 1) {
+                                            widget.item.assets[id] = qty - 1;
+                                          } else {
+                                            widget.item.assets.remove(id);
+                                          }
+                                        });
+                                        widget.onUpdate();
+                                      }),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                      onTap: () => _editQuantity(id, qty),
+                                      child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                              color: Colors.black45,
+                                              borderRadius:
+                                                  BorderRadius.circular(6)),
+                                          child: Text(formatNumber(qty),
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight.bold)))),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: EdgeInsets.zero,
+                                      iconSize: 20,
+                                      icon: const Icon(
+                                          Icons.add_circle_outline,
+                                          color: AppTheme.neonGreen),
+                                      onPressed: () {
+                                        setState(() {
+                                          widget.item.assets[id] = qty + 1;
+                                        });
+                                        widget.onUpdate();
+                                      }),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isDeleting)
+                          Positioned(
+                              top: -8,
+                              right: -5,
+                              child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _deletingAssetId = null;
+                                      widget.item.assets.remove(id);
+                                    });
+                                    widget.onUpdate();
+                                  },
+                                  child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                          color: AppTheme.neonRed,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                              color: Colors.white, width: 2)),
+                                      child: const Icon(Icons.delete_forever,
+                                          color: Colors.white, size: 18)))),
+                      ],
+                    ),
+                  );
+
+                  // Kasa (wallet) PageView içinde: sadece long-press ile sil
+                  // Alacak/Borç detayı: swipe da kalsın
+                  if (widget.isWallet) {
+                    return assetTile;
+                  }
                   return Dismissible(
                     key: Key(id),
                     direction: DismissDirection.startToEnd,
@@ -708,92 +832,13 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                         decoration: BoxDecoration(
                             color: AppTheme.neonRed,
                             borderRadius: BorderRadius.circular(12)),
-                        child: const Icon(Icons.delete, color: Colors.white)),
+                        child:
+                            const Icon(Icons.delete, color: Colors.white)),
                     onDismissed: (d) {
                       setState(() => widget.item.assets.remove(id));
                       widget.onUpdate();
                     },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                          color: AppTheme.card,
-                          borderRadius: BorderRadius.circular(12)),
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () => widget.onAssetTap(asset),
-                            child: Row(children: [
-                              AssetCoin(type: asset),
-                              const SizedBox(width: 15),
-                              Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(asset.name,
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 2),
-                                    Text(currency.format(qty * itemPrice),
-                                        style: const TextStyle(
-                                            color: Colors.grey, fontSize: 13))
-                                  ])
-                            ]),
-                          ),
-                          const Spacer(),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                  iconSize: 20,
-                                  icon: const Icon(Icons.remove_circle_outline,
-                                      color: AppTheme.neonRed),
-                                  onPressed: () {
-                                    setState(() {
-                                      if (qty > 1) {
-                                        widget.item.assets[id] = qty - 1;
-                                      } else {
-                                        widget.item.assets.remove(id);
-                                      }
-                                    });
-                                    widget.onUpdate();
-                                  }),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                  onTap: () => _editQuantity(id, qty),
-                                  child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                          color: Colors.black45,
-                                          borderRadius:
-                                              BorderRadius.circular(6)),
-                                      child: Text(formatNumber(qty),
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold)))),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                  iconSize: 20,
-                                  icon: const Icon(Icons.add_circle_outline,
-                                      color: AppTheme.neonGreen),
-                                  onPressed: () {
-                                    setState(() {
-                                      widget.item.assets[id] = qty + 1;
-                                    });
-                                    widget.onUpdate();
-                                  }),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    child: assetTile,
                   );
                 },
               ),

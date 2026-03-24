@@ -417,7 +417,16 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                         decoration: BoxDecoration(
                             color: AppTheme.card,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white10)),
+                            border: Border.all(
+                                color: AppTheme.goldMain.withOpacity(0.15),
+                                width: 1),
+                            boxShadow: [
+                              BoxShadow(
+                                  color: AppTheme.goldMain.withOpacity(0.06),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                  offset: const Offset(0, 2)),
+                            ]),
                         child: assetId == null
                             ? const Center(
                                 child: Icon(Icons.add,

@@ -460,7 +460,10 @@ class _MainLayoutState extends State<MainLayout> {
             child: PageView(
                 physics: const BouncingScrollPhysics(),
                 controller: _pageController,
-                onPageChanged: (i) => _navIndex = i,
+                onPageChanged: (i) {
+                  _isPageScrolling = false;
+                  setState(() => _navIndex = i);
+                },
                 children: securedPages)),
         floatingActionButton:
             (_navIndex == 1 || _navIndex == 2) && !_isAppLocked

@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'modeller.dart';
-import 'gecmis_veriler.dart';
 
 class PiyasaMotoru {
   final Function onUpdate;
@@ -40,6 +39,11 @@ class PiyasaMotoru {
   final Random _random = Random();
   DateTime? _lastFetchTime;
 
+  // Google Sheets geçmiş veri URL'si (Gecmis sekmesi)
+  static const String _sheetsHistoryUrl =
+      'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv&gid=0';
+  // NOT: gid değeri Gecmis sekmesi oluşturulunca güncellenecek
+
   PiyasaMotoru({required this.onUpdate});
 
   void _recalcLiveValues() {
@@ -64,7 +68,8 @@ class PiyasaMotoru {
       fetchLiveData().then((_) {
         _recalcLiveValues();
         _lastFetchTime = DateTime.now();
-        fillHistoricalGaps();
+        // Sheets'ten geçmiş verileri çek, sonra boşlukları doldur
+        _fetchHistoricalFromSheets().then((_) => fillHistoricalGaps());
       });
     });
 
@@ -371,6 +376,116 @@ class PiyasaMotoru {
   }
 
   // ------------------------------------------------------------------
+  // GOOGLE SHEETS'TEN GEÇMİŞ VERİLERİ ÇEK
+  // ------------------------------------------------------------------
+  Future<void> _fetchHistoricalFromSheets() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Günde 1 kez çek (cache kontrolü)
+      String todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      String? lastFetch = prefs.getString('sheets_history_last_fetch');
+      if (lastFetch == todayKey && assetHistory.isNotEmpty) return;
+
+      final uri = Uri.parse(_sheetsHistoryUrl);
+      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) return;
+
+      String csvBody = response.body.trim();
+      List<String> lines = csvBody.split('\n');
+      if (lines.length < 2) return;
+
+      // Header: Tarih,has,usd,eur,btc,eth,ons,silver
+      List<String> headers = _parseCsvLine(lines[0])
+          .map((h) => h.trim().toLowerCase())
+          .toList();
+
+      int iDate = headers.indexOf('tarih');
+      int iHas = headers.indexOf('has');
+      int iUsd = headers.indexOf('usd');
+      int iEur = headers.indexOf('eur');
+      int iBtc = headers.indexOf('btc');
+      int iEth = headers.indexOf('eth');
+      int iOns = headers.indexOf('ons');
+      int iSilver = headers.indexOf('silver');
+
+      if (iDate < 0 || iHas < 0) return;
+
+      for (int i = 1; i < lines.length; i++) {
+        String line = lines[i].trim();
+        if (line.isEmpty) continue;
+
+        List<String> cols = _parseCsvLine(line);
+        if (cols.length <= iDate) continue;
+
+        String dateKey = cols[iDate].trim();
+        // Tarih formatını doğrula (yyyy-MM-dd)
+        if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dateKey)) continue;
+
+        double hasPrice = _getCol(cols, iHas);
+        if (hasPrice <= 0) continue;
+
+        double usdTry = _getCol(cols, iUsd);
+        double eurTry = _getCol(cols, iEur);
+        double btcUsd = _getCol(cols, iBtc);
+        double ethUsd = _getCol(cols, iEth);
+        double onsUsd = _getCol(cols, iOns);
+        double silverTl = _getCol(cols, iSilver);
+
+        // HAS'tan diğer altın tiplerini türet
+        double rawBase = hasPrice / 1.031;
+        Map<String, dynamic> dPrices = {};
+        dPrices["has"] = (rawBase * 1.0767) + (rawBase * 0.01);
+        dPrices["gram"] = (rawBase * 1.0821) + (rawBase * 0.01);
+        dPrices["ceyrek"] =
+            (rawBase * 1.605 * 1.1040) + (rawBase * 1.605 * 0.01);
+        dPrices["yarim"] =
+            (rawBase * 3.210 * 1.1006) + (rawBase * 3.210 * 0.01);
+        dPrices["tam"] =
+            (rawBase * 6.420 * 1.0964) + (rawBase * 6.420 * 0.01);
+        dPrices["ata"] =
+            (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
+        dPrices["gremse"] =
+            (rawBase * 16.050 * 1.0939) + (rawBase * 16.050 * 0.01);
+        dPrices["resat"] =
+            (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
+        dPrices["hamit"] =
+            (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
+        dPrices["gram22"] =
+            (rawBase * 0.916 * 1.1134) + (rawBase * 0.916 * 0.01);
+        dPrices["yarim_gram22"] =
+            (rawBase * 0.458 * 1.1134) + (rawBase * 0.458 * 0.01);
+        dPrices["bilezik14"] =
+            (rawBase * 0.585 * 1.3242) + (rawBase * 0.585 * 0.01);
+
+        if (silverTl > 0) dPrices["silver"] = silverTl;
+        if (usdTry > 0) dPrices["usd"] = usdTry * 1.004;
+        if (eurTry > 0) dPrices["eur"] = eurTry * 1.004;
+        // BTC, ETH, ONS her zaman USD bazında
+        if (onsUsd > 0) dPrices["ons"] = onsUsd;
+        if (btcUsd > 0) dPrices["btc"] = btcUsd;
+        if (ethUsd > 0) dPrices["eth"] = ethUsd;
+
+        assetHistory[dateKey] = dPrices;
+      }
+
+      // Yerel cache'e kaydet
+      await prefs.setString('asset_history_v2', jsonEncode(assetHistory));
+      await prefs.setString('sheets_history_last_fetch', todayKey);
+    } catch (e) {
+      // Sessizce devam et — cache'deki veriyle çalışır
+    }
+  }
+
+  double _getCol(List<String> cols, int index) {
+    if (index < 0 || index >= cols.length) return 0.0;
+    String s = cols[index].trim();
+    if (s.isEmpty) return 0.0;
+    // Noktalı sayılar olabilir (Sheets'ten direkt geliyor)
+    return double.tryParse(s) ?? 0.0;
+  }
+
+  // ------------------------------------------------------------------
   // GEÇMİŞ VERİ BOŞLUKLARINI DOLDUR (Binance Klines)
   // ------------------------------------------------------------------
   Future<void> fillHistoricalGaps() async {
@@ -459,9 +574,9 @@ class PiyasaMotoru {
         dPrices["silver"] = silverBaseTL * 1.0957;
         dPrices["usd"] = usdTry * 1.004;
         dPrices["eur"] = eurTry * 1.004;
-        dPrices["ons"] = paxgUsd * usdTry;
-        dPrices["btc"] = btc * usdTry;
-        dPrices["eth"] = eth * usdTry;
+        dPrices["ons"] = paxgUsd;    // USD bazında
+        dPrices["btc"] = btc;         // USD bazında
+        dPrices["eth"] = eth;         // USD bazında
 
         assetHistory[dateKey] = dPrices;
       }
@@ -630,131 +745,8 @@ class PiyasaMotoru {
                 .toList();
       }
 
-      realGoldHistory.forEach((dateKey, hasPrice) {
-        Map<String, dynamic> dPrices = {};
-        DateTime targetDate = DateTime.parse(dateKey);
-        double rawBase = hasPrice / 1.031;
-
-        dPrices["has"] = (rawBase * 1.0767) + (rawBase * 0.01);
-        dPrices["gram"] = (rawBase * 1.0821) + (rawBase * 0.01);
-        dPrices["ceyrek"] =
-            (rawBase * 1.605 * 1.1040) + (rawBase * 1.605 * 0.01);
-        dPrices["yarim"] =
-            (rawBase * 3.210 * 1.1006) + (rawBase * 3.210 * 0.01);
-        dPrices["tam"] = (rawBase * 6.420 * 1.0964) + (rawBase * 6.420 * 0.01);
-        dPrices["ata"] = (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
-        dPrices["gremse"] =
-            (rawBase * 16.050 * 1.0939) + (rawBase * 16.050 * 0.01);
-        dPrices["resat"] =
-            (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
-        dPrices["hamit"] =
-            (rawBase * 6.610 * 1.0934) + (rawBase * 6.610 * 0.01);
-        dPrices["gram22"] =
-            (rawBase * 0.916 * 1.1134) + (rawBase * 0.916 * 0.01);
-        dPrices["yarim_gram22"] =
-            (rawBase * 0.458 * 1.1134) + (rawBase * 0.458 * 0.01);
-        dPrices["bilezik14"] =
-            (rawBase * 0.585 * 1.3242) + (rawBase * 0.585 * 0.01);
-
-        double usdTry = 0.0;
-        if (realUsdHistory.containsKey(dateKey)) {
-          usdTry = realUsdHistory[dateKey]!;
-        } else {
-          List<String> sortedUsdDates = realUsdHistory.keys.toList()..sort();
-          String? closestDate;
-          for (var d in sortedUsdDates) {
-            if (DateTime.parse(d).isAfter(targetDate)) {
-              closestDate = d;
-              break;
-            }
-          }
-          if (closestDate != null &&
-              DateTime.parse(closestDate).difference(targetDate).inDays.abs() <
-                  7) {
-            usdTry = realUsdHistory[closestDate]!;
-          } else {
-            int daysSince2015 =
-                targetDate.difference(DateTime(2015, 1, 1)).inDays;
-            if (daysSince2015 < 0) daysSince2015 = 0;
-            double estimatedOns = 1200.0 + (daysSince2015 * (1600.0 / 3650.0));
-            usdTry = rawBase / (estimatedOns / 31.1035);
-          }
-        }
-
-        double btcUsd = 0.0;
-        if (realBtcHistory.containsKey(dateKey)) {
-          btcUsd = realBtcHistory[dateKey]!;
-        } else {
-          List<String> sortedBtcDates = realBtcHistory.keys.toList()..sort();
-          String? before;
-          String? after;
-          for (var d in sortedBtcDates) {
-            if (DateTime.parse(d).isBefore(targetDate) ||
-                DateTime.parse(d).isAtSameMomentAs(targetDate)) {
-              before = d;
-            } else {
-              after = d;
-              break;
-            }
-          }
-          if (before != null &&
-              targetDate.difference(DateTime.parse(before)).inDays <= 30) {
-            btcUsd = realBtcHistory[before]!;
-          } else if (after != null &&
-              DateTime.parse(after).difference(targetDate).inDays <= 30) {
-            btcUsd = realBtcHistory[after]!;
-          } else {
-            int daysSince2015 =
-                targetDate.difference(DateTime(2015, 1, 1)).inDays;
-            if (daysSince2015 < 0) daysSince2015 = 0;
-            btcUsd = 300.0 * pow(1.00147, daysSince2015);
-            if (btcUsd > 120000) btcUsd = 120000.0;
-          }
-        }
-
-        double eurTry = usdTry * 1.08;
-        double ethUsd = btcUsd * 0.05;
-        double goldOns = (rawBase / usdTry) * 31.1035;
-
-        double silverPrice = 0.0;
-        if (realSilverHistory.containsKey(dateKey)) {
-          silverPrice = realSilverHistory[dateKey]!;
-        } else {
-          List<String> sortedSilverDates = realSilverHistory.keys.toList()
-            ..sort();
-          String? before;
-          String? after;
-          for (var d in sortedSilverDates) {
-            if (DateTime.parse(d).isBefore(targetDate) ||
-                DateTime.parse(d).isAtSameMomentAs(targetDate)) {
-              before = d;
-            } else {
-              after = d;
-              break;
-            }
-          }
-          if (before != null &&
-              targetDate.difference(DateTime.parse(before)).inDays <= 30) {
-            silverPrice = realSilverHistory[before]!;
-          } else if (after != null &&
-              DateTime.parse(after).difference(targetDate).inDays <= 30) {
-            silverPrice = realSilverHistory[after]!;
-          } else {
-            double silverBaseTL = rawBase / 66.0;
-            silverPrice = silverBaseTL * 1.0957;
-          }
-        }
-
-        dPrices["silver"] = silverPrice;
-        dPrices["usd"] = usdTry * 1.004;
-        dPrices["eur"] = eurTry * 1.004;
-        dPrices["ons"] = goldOns;
-        dPrices["btc"] = btcUsd;
-        dPrices["eth"] = ethUsd;
-
-        assetHistory[dateKey] = dPrices;
-      });
-
+      // Geçmiş veriler artık Google Sheets'ten çekilir (_fetchHistoricalFromSheets)
+      // Önce varsa yerel cache'i yükle
       if (prefs.containsKey('asset_history_v2')) {
         Map<String, dynamic> localHistory =
             jsonDecode(prefs.getString('asset_history_v2')!);

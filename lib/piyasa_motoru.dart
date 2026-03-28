@@ -39,10 +39,9 @@ class PiyasaMotoru {
   final Random _random = Random();
   DateTime? _lastFetchTime;
 
-  // Google Sheets geçmiş veri URL'si (Gecmis sekmesi)
+  // Google Sheets geçmiş veri URL'si (geçmiş sekmesi)
   static const String _sheetsHistoryUrl =
-      'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv&gid=0';
-  // NOT: gid değeri Gecmis sekmesi oluşturulunca güncellenecek
+      'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv&gid=1578620279';
 
   PiyasaMotoru({required this.onUpdate});
 

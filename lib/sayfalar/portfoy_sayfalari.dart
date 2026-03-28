@@ -149,9 +149,11 @@ class _ListingPageState extends State<ListingPage> {
                           if (isExpanded && item.assets.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(
-                                  left: 16, right: 16, bottom: 12),
+                                  left: 16, right: 16, bottom: 14),
                               child: Column(
-                                children: item.assets.entries.map((entry) {
+                                children: item.assets.entries.toList().asMap().entries.map((mapEntry) {
+                                  final idx = mapEntry.key;
+                                  final entry = mapEntry.value;
                                   final assetId = entry.key;
                                   final qty = entry.value;
                                   final asset = widget.market.cast<AssetType?>().firstWhere(
@@ -159,26 +161,50 @@ class _ListingPageState extends State<ListingPage> {
                                       orElse: () => null);
                                   if (asset == null) return const SizedBox.shrink();
                                   final assetVal = asset.sellPrice * qty;
-                                  return Padding(
-                                    padding:
-                                        const EdgeInsets.only(bottom: 6),
-                                    child: Row(
-                                      children: [
-                                        AssetCoin(type: asset, size: 28),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(asset.name,
-                                              style: const TextStyle(
-                                                  color: Colors.white70,
-                                                  fontSize: 13)),
+                                  final isLast = idx == item.assets.length - 1;
+                                  return Column(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        child: Row(
+                                          children: [
+                                            AssetCoin(type: asset, size: 30),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(asset.name,
+                                                      style: const TextStyle(
+                                                          color: Colors.white70,
+                                                          fontSize: 13,
+                                                          fontWeight: FontWeight.w500)),
+                                                  const SizedBox(height: 2),
+                                                  Text("x ${formatNumber(qty)} adet",
+                                                      style: TextStyle(
+                                                          color: Colors.white.withOpacity(0.35),
+                                                          fontSize: 11)),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(currency.format(assetVal),
+                                                style: TextStyle(
+                                                    color: widget.isCredit
+                                                        ? const Color(0xFF66BB6A)
+                                                        : const Color(0xFFEF5350),
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600)),
+                                          ],
                                         ),
-                                        const SizedBox(width: 10),
-                                        Text(currency.format(assetVal),
-                                            style: const TextStyle(
-                                                color: Colors.white54,
-                                                fontSize: 12)),
-                                      ],
-                                    ),
+                                      ),
+                                      if (!isLast)
+                                        Divider(
+                                          color: Colors.white.withOpacity(0.06),
+                                          height: 1,
+                                          thickness: 0.5,
+                                        ),
+                                    ],
                                   );
                                 }).toList(),
                               ),
@@ -778,12 +804,14 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                       clipBehavior: Clip.none,
                       children: [
                         Container(
-                          margin: const EdgeInsets.only(bottom: 10),
+                          margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                              horizontal: 18, vertical: 14),
                           decoration: BoxDecoration(
                               color: AppTheme.card,
-                              borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.04))),
                           child: Row(
                             children: [
                               GestureDetector(
@@ -799,13 +827,23 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                                             style: const TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                            currency.format(qty * itemPrice),
+                                            style: TextStyle(
+                                                color: widget.isWallet
+                                                    ? Colors.grey
+                                                    : (widget.item.isCredit
+                                                        ? const Color(0xFF66BB6A)
+                                                        : const Color(0xFFEF5350)),
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500)),
                                         const SizedBox(height: 2),
                                         Text(
-                                            currency
-                                                .format(qty * itemPrice),
-                                            style: const TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 13))
+                                            "x ${formatNumber(qty)} adet",
+                                            style: TextStyle(
+                                                color: Colors.white.withOpacity(0.35),
+                                                fontSize: 11)),
                                       ])
                                 ]),
                               ),

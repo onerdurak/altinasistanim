@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__c1fc4002-5f49-5f9d-a4e5-93c4ef5d6a75__google_drive_fetch",
+      "WebFetch(domain:docs.google.com)",
+      "WebFetch(domain:doc-0o-5k-sheets.googleusercontent.com)",
+      "Read(//c/Users/ONER/Documents/GitHub/altin.asistanim/**)",
+      "Bash(flutter analyze:*)",
+      "WebFetch(domain:www.haremaltin.com)",
+      "WebFetch(domain:www.haremaltin.com.tr)",
+      "WebFetch(domain:canli.altin.com.tr)",
+      "Bash(git -C /c/Users/ONER/Documents/GitHub/altin.asistanim diff HEAD lib/piyasa_motoru.dart)",
+      "Bash(git -C /c/Users/ONER/Documents/GitHub/altin.asistanim diff HEAD lib/bilesenler/ortak_araclar.dart)",
+      "Bash(git -C /c/Users/ONER/Documents/GitHub/altin.asistanim log --oneline -5)"
+    ]
+  }
+}

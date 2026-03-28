@@ -100,7 +100,7 @@ class _MainLayoutState extends State<MainLayout> {
   final LocalAuthentication _localAuth = LocalAuthentication();
   bool _isAppLocked = false;
   String _appPin = "0000";
-  bool _isPageScrolling = false;
+  bool _isPageAnimating = false;
 
   @override
   void initState() {
@@ -108,14 +108,26 @@ class _MainLayoutState extends State<MainLayout> {
     _loadAuthData();
 
     _motor = PiyasaMotoru(onUpdate: () {
-      // Sayfa kaydırılırken rebuild yapma — donmayı engeller
-      if (mounted && !_isPageScrolling) setState(() {});
+      if (mounted && !_isPageAnimating) setState(() {});
     });
     _motor.baslat();
+
+    // PageView kaydırma anını tespit et (sayfa pozisyonu tam sayı değilse kaydırılıyor)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pageController.addListener(_onPageScroll);
+    });
+  }
+
+  void _onPageScroll() {
+    if (!_pageController.hasClients) return;
+    double page = _pageController.page ?? 0;
+    bool animating = (page - page.roundToDouble()).abs() > 0.01;
+    _isPageAnimating = animating;
   }
 
   @override
   void dispose() {
+    _pageController.removeListener(_onPageScroll);
     _motor.kapat();
     _pageController.dispose();
     super.dispose();
@@ -421,9 +433,8 @@ class _MainLayoutState extends State<MainLayout> {
     final securedPages = rawPages
         .asMap()
         .entries
-        .map((e) => _KeepAlivePage(
-            child: RepaintBoundary(
-                child: _buildSecuredPage(e.key, e.value))))
+        .map((e) => RepaintBoundary(
+            child: _buildSecuredPage(e.key, e.value)))
         .toList();
 
     return Scaffold(
@@ -446,25 +457,14 @@ class _MainLayoutState extends State<MainLayout> {
                       onPressed: () => Scaffold.of(context).openEndDrawer())),
               const SizedBox(width: 5),
             ]),
-        body: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification is ScrollStartNotification) {
-                _isPageScrolling = true;
-              } else if (notification is ScrollEndNotification) {
-                _isPageScrolling = false;
-                // Kaydırma bitti, son durumu göster
-                if (mounted) setState(() {});
-              }
-              return false;
-            },
-            child: PageView(
+        body: PageView(
                 physics: const BouncingScrollPhysics(),
                 controller: _pageController,
                 onPageChanged: (i) {
-                  _isPageScrolling = false;
+                  _isPageAnimating = false;
                   setState(() => _navIndex = i);
                 },
-                children: securedPages)),
+                children: securedPages),
         floatingActionButton:
             (_navIndex == 1 || _navIndex == 2) && !_isAppLocked
                 ? FloatingActionButton.extended(
@@ -506,23 +506,3 @@ class _MainLayoutState extends State<MainLayout> {
   }
 }
 
-/// Sayfaları hafızada tutar — PageView geçişinde yok edilip yeniden çizilmez
-class _KeepAlivePage extends StatefulWidget {
-  final Widget child;
-  const _KeepAlivePage({required this.child});
-
-  @override
-  State<_KeepAlivePage> createState() => _KeepAlivePageState();
-}
-
-class _KeepAlivePageState extends State<_KeepAlivePage>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return widget.child;
-  }
-}

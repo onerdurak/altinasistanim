@@ -130,7 +130,7 @@ class PiyasaMotoru {
     });
   }
 
-  // --- MOTOR TETİKLEYİCİSİ ---
+  // --- KARMA MOTOR: SHEETS + BİNANCE ENTEGRE ---
   Future<void> fetchLiveData({bool silent = false}) async {
     if (!silent) {
       isLoading = true;
@@ -138,16 +138,143 @@ class PiyasaMotoru {
     }
 
     try {
-      // 1. BİRİNCİ MOTOR: GOOGLE SHEETS (Altın Fiyatları)
-      bool isSheetsSuccess = await _fetchFromSheetsEngine();
-      isPrimaryEngineActive = isSheetsSuccess;
+      // Sheets ve Binance'i aynı anda paralel çek
+      final responses = await Future.wait([
+        // [0] Google Sheets CSV
+        http.get(Uri.parse(
+            'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv')),
+        // [1] Binance USDTTRY
+        http.get(Uri.parse(
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=USDTTRY')),
+        // [2] Binance EURUSDT
+        http.get(Uri.parse(
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=EURUSDT')),
+        // [3] Binance PAXGUSDT (ONS Altını)
+        http.get(Uri.parse(
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT')),
+        // [4] Binance BTCUSDT
+        http.get(Uri.parse(
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')),
+        // [5] Binance ETHUSDT
+        http.get(Uri.parse(
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT')),
+      ]);
 
-      // 2. İKİNCİ MOTOR: BİNANCE (Döviz + Kripto + ONS Altını)
-      bool isBinanceSuccess = await _fetchFromBinanceEngine();
+      bool anySuccess = false;
 
-      isLiveConnection = isSheetsSuccess || isBinanceSuccess;
+      // ── SHEETS KISMI: Altın & Gümüş fiyatları ──
+      if (responses[0].statusCode == 200) {
+        Map<String, Map<String, double>> sheetData = {};
+        List<String> lines = responses[0].body.split('\n');
+        for (int i = 1; i < lines.length; i++) {
+          String line = lines[i].trim();
+          if (line.isEmpty) continue;
+          List<String> cols = _parseCsvLine(line);
+          if (cols.length < 4) continue;
+          String kod = cols[0].trim().toLowerCase();
+          double sell = _parseTurkishNumber(cols[1]);
+          double buy = _parseTurkishNumber(cols[2]);
+          double change = _parseTurkishNumber(cols[3]);
+          if (kod.isNotEmpty && sell > 0) {
+            sheetData[kod] = {'sell': sell, 'buy': buy, 'change': change};
+          }
+        }
 
-      if (isLiveConnection) {
+        if (sheetData.isNotEmpty) {
+          const sheetsIds = [
+            'has', 'gram', 'gram22', 'ceyrek', 'yarim', 'tam',
+            'ata', 'resat', 'hamit', 'gremse', 'bilezik14', 'silver'
+          ];
+          for (var asset in market) {
+            if (!sheetsIds.contains(asset.id)) continue;
+            var data = sheetData[asset.id];
+            if (data == null) continue;
+            double sell = data['sell']!;
+            double buy = data['buy']!;
+            double change = data['change']!;
+            if (sell <= 0) continue;
+            if (buy <= 0) buy = sell * 0.98;
+            asset.applyNewPrices(sell, buy, change);
+          }
+          anySuccess = true;
+        }
+      }
+
+      // ── BİNANCE KISMI: Döviz + Kripto + ONS ──
+      if (responses[1].statusCode == 200) {
+        final usdData = json.decode(responses[1].body);
+        double usdTry = double.parse(usdData['lastPrice']);
+        double usdChange = double.parse(usdData['priceChangePercent']);
+        currentUsdRate = usdTry;
+
+        // USD
+        for (var a in market) {
+          if (a.id == 'usd') {
+            a.applyNewPrices(
+                usdTry * a.sellMarkup, usdTry * a.buyMarkup, usdChange);
+          }
+        }
+
+        // EUR (EURUSDT × USDTTRY)
+        if (responses[2].statusCode == 200) {
+          final d = json.decode(responses[2].body);
+          double eurUsd = double.parse(d['lastPrice']);
+          double eurChange = double.parse(d['priceChangePercent']);
+          double eurTry = eurUsd * usdTry;
+          for (var a in market) {
+            if (a.id == 'eur') {
+              a.applyNewPrices(
+                  eurTry * a.sellMarkup, eurTry * a.buyMarkup, eurChange);
+            }
+          }
+        }
+
+        // ONS Altını (PAXGUSDT)
+        if (responses[3].statusCode == 200) {
+          final d = json.decode(responses[3].body);
+          double goldOnsUsd = double.parse(d['lastPrice']);
+          double onsChange = double.parse(d['priceChangePercent']);
+          double onsTry = goldOnsUsd * usdTry;
+          for (var a in market) {
+            if (a.id == 'ons') {
+              a.applyNewPrices(onsTry, onsTry, onsChange, nUsd: goldOnsUsd);
+            }
+          }
+        }
+
+        // Bitcoin (BTCUSDT)
+        if (responses[4].statusCode == 200) {
+          final d = json.decode(responses[4].body);
+          double btcUsd = double.parse(d['lastPrice']);
+          double btcChange = double.parse(d['priceChangePercent']);
+          double btcTry = btcUsd * usdTry;
+          for (var a in market) {
+            if (a.id == 'btc') {
+              a.applyNewPrices(btcTry, btcTry, btcChange, nUsd: btcUsd);
+            }
+          }
+        }
+
+        // Ethereum (ETHUSDT)
+        if (responses[5].statusCode == 200) {
+          final d = json.decode(responses[5].body);
+          double ethUsd = double.parse(d['lastPrice']);
+          double ethChange = double.parse(d['priceChangePercent']);
+          double ethTry = ethUsd * usdTry;
+          for (var a in market) {
+            if (a.id == 'eth') {
+              a.applyNewPrices(ethTry, ethTry, ethChange, nUsd: ethUsd);
+            }
+          }
+        }
+
+        anySuccess = true;
+      }
+
+      isPrimaryEngineActive = anySuccess;
+      isLiveConnection = anySuccess;
+
+      if (anySuccess) {
         _syncCustomAssets();
         updateDailyHistory();
         saveMarketCache();
@@ -159,155 +286,6 @@ class PiyasaMotoru {
         isLoading = false;
         onUpdate();
       }
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // BİRİNCİ MOTOR: GOOGLE SHEETS (Altın & Gümüş Fiyatları)
-  // ------------------------------------------------------------------
-  Future<bool> _fetchFromSheetsEngine() async {
-    try {
-      final response = await http.get(Uri.parse(
-          'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv'));
-      if (response.statusCode != 200) return false;
-
-      // CSV satırlarını parse et (tırnak içindeki virgüllere dikkat)
-      Map<String, Map<String, double>> sheetData = {};
-      List<String> lines = response.body.split('\n');
-      for (int i = 1; i < lines.length; i++) {
-        String line = lines[i].trim();
-        if (line.isEmpty) continue;
-        List<String> cols = _parseCsvLine(line);
-        if (cols.length < 4) continue;
-        String kod = cols[0].trim().toLowerCase();
-        double sell = _parseTurkishNumber(cols[1]);
-        double buy = _parseTurkishNumber(cols[2]);
-        double change = _parseTurkishNumber(cols[3]);
-        if (kod.isNotEmpty && sell > 0) {
-          sheetData[kod] = {'sell': sell, 'buy': buy, 'change': change};
-        }
-      }
-
-      if (sheetData.isEmpty) return false;
-
-      // Sheets'ten güncellenecek varlıklar (ons Binance'den gelecek)
-      const sheetsIds = [
-        'has', 'gram', 'gram22', 'ceyrek', 'yarim', 'tam',
-        'ata', 'resat', 'hamit', 'gremse', 'bilezik14', 'silver'
-      ];
-
-      bool anyUpdated = false;
-      for (var asset in market) {
-        if (!sheetsIds.contains(asset.id)) continue;
-        var data = sheetData[asset.id];
-        if (data == null) continue;
-        double sell = data['sell']!;
-        double buy = data['buy']!;
-        double change = data['change']!;
-        if (sell <= 0) continue;
-        if (buy <= 0) buy = sell * 0.98;
-        asset.applyNewPrices(sell, buy, change);
-        anyUpdated = true;
-      }
-
-      return anyUpdated;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // İKİNCİ MOTOR: BİNANCE (USD, EUR, ONS Altını, BTC, ETH)
-  // ------------------------------------------------------------------
-  Future<bool> _fetchFromBinanceEngine() async {
-    try {
-      final results = await Future.wait([
-        http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=USDTTRY')),
-        http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=EURUSDT')),
-        http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT')),
-        http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')),
-        http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT')),
-      ]);
-
-      final usdRes = results[0];
-      if (usdRes.statusCode != 200) return false;
-
-      final usdData = json.decode(usdRes.body);
-      double usdTry = double.parse(usdData['lastPrice']);
-      double usdChange = double.parse(usdData['priceChangePercent']);
-      currentUsdRate = usdTry;
-
-      double eurUsd = 0, eurChange = 0;
-      if (results[1].statusCode == 200) {
-        final d = json.decode(results[1].body);
-        eurUsd = double.parse(d['lastPrice']);
-        eurChange = double.parse(d['priceChangePercent']);
-      }
-      double eurTry = eurUsd > 0 ? eurUsd * usdTry : 0;
-
-      double goldOnsUsd = 0, onsChange = 0;
-      if (results[2].statusCode == 200) {
-        final d = json.decode(results[2].body);
-        goldOnsUsd = double.parse(d['lastPrice']);
-        onsChange = double.parse(d['priceChangePercent']);
-      }
-
-      double btcUsd = 0, btcChange = 0;
-      if (results[3].statusCode == 200) {
-        final d = json.decode(results[3].body);
-        btcUsd = double.parse(d['lastPrice']);
-        btcChange = double.parse(d['priceChangePercent']);
-      }
-
-      double ethUsd = 0, ethChange = 0;
-      if (results[4].statusCode == 200) {
-        final d = json.decode(results[4].body);
-        ethUsd = double.parse(d['lastPrice']);
-        ethChange = double.parse(d['priceChangePercent']);
-      }
-
-      for (var asset in market) {
-        switch (asset.id) {
-          case 'usd':
-            asset.applyNewPrices(usdTry * asset.sellMarkup,
-                usdTry * asset.buyMarkup, usdChange);
-            break;
-          case 'eur':
-            if (eurTry > 0) {
-              asset.applyNewPrices(eurTry * asset.sellMarkup,
-                  eurTry * asset.buyMarkup, eurChange);
-            }
-            break;
-          case 'ons':
-            if (goldOnsUsd > 0) {
-              double onsTry = goldOnsUsd * usdTry;
-              asset.applyNewPrices(onsTry, onsTry, onsChange,
-                  nUsd: goldOnsUsd);
-            }
-            break;
-          case 'btc':
-            if (btcUsd > 0) {
-              double btcTry = btcUsd * usdTry;
-              asset.applyNewPrices(btcTry, btcTry, btcChange, nUsd: btcUsd);
-            }
-            break;
-          case 'eth':
-            if (ethUsd > 0) {
-              double ethTry = ethUsd * usdTry;
-              asset.applyNewPrices(ethTry, ethTry, ethChange, nUsd: ethUsd);
-            }
-            break;
-        }
-      }
-
-      return true;
-    } catch (e) {
-      return false;
     }
   }
 

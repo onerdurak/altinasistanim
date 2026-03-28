@@ -31,7 +31,7 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
   @override
   void initState() {
     super.initState();
-    _priceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _priceTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (mounted) setState(() {});
     });
   }

@@ -150,10 +150,11 @@ class _ListingPageState extends State<ListingPage> {
                             Padding(
                               padding: const EdgeInsets.only(
                                   left: 16, right: 16, bottom: 14),
-                              child: Column(
-                                children: item.assets.entries.toList().asMap().entries.map((mapEntry) {
-                                  final idx = mapEntry.key;
-                                  final entry = mapEntry.value;
+                              child: Builder(builder: (context) {
+                                final assetEntries = item.assets.entries.toList();
+                                return Column(
+                                children: List.generate(assetEntries.length, (idx) {
+                                  final entry = assetEntries[idx];
                                   final assetId = entry.key;
                                   final qty = entry.value;
                                   final asset = widget.market.cast<AssetType?>().firstWhere(
@@ -206,8 +207,9 @@ class _ListingPageState extends State<ListingPage> {
                                         ),
                                     ],
                                   );
-                                }).toList(),
-                              ),
+                                }),
+                              );
+                              }),
                             ),
                         ],
                       ),

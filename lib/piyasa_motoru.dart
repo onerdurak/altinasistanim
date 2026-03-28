@@ -87,12 +87,12 @@ class PiyasaMotoru {
 
   void _startTickerSimulation() {
     _simulationTimer?.cancel();
-    _simulationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _simulationTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (!isLiveConnection) return;
 
       List<int> allIndices = List.generate(market.length, (i) => i)
         ..shuffle(_random);
-      int changeCount = (market.length * 0.9).toInt();
+      int changeCount = (market.length * 0.6).toInt();
       List<int> selectedIndices = allIndices.take(changeCount).toList();
 
       for (int i in selectedIndices) {
@@ -138,26 +138,38 @@ class PiyasaMotoru {
     }
 
     try {
-      // Sheets ve Binance'i aynı anda paralel çek
+      // Sheets ve Binance'i aynı anda paralel çek (timeout ile)
       final responses = await Future.wait([
-        // [0] Google Sheets CSV
+        // [0] Google Sheets CSV (yavaş olabilir, 5sn timeout)
         http.get(Uri.parse(
-            'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv')),
+            'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv'))
+            .timeout(const Duration(seconds: 5),
+                onTimeout: () => http.Response('', 408)),
         // [1] Binance USDTTRY
         http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=USDTTRY')),
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=USDTTRY'))
+            .timeout(const Duration(seconds: 5),
+                onTimeout: () => http.Response('', 408)),
         // [2] Binance EURUSDT
         http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=EURUSDT')),
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=EURUSDT'))
+            .timeout(const Duration(seconds: 5),
+                onTimeout: () => http.Response('', 408)),
         // [3] Binance PAXGUSDT (ONS Altını)
         http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT')),
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT'))
+            .timeout(const Duration(seconds: 5),
+                onTimeout: () => http.Response('', 408)),
         // [4] Binance BTCUSDT
         http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')),
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT'))
+            .timeout(const Duration(seconds: 5),
+                onTimeout: () => http.Response('', 408)),
         // [5] Binance ETHUSDT
         http.get(Uri.parse(
-            'https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT')),
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT'))
+            .timeout(const Duration(seconds: 5),
+                onTimeout: () => http.Response('', 408)),
       ]);
 
       bool anySuccess = false;

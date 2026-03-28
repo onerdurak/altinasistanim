@@ -96,11 +96,11 @@ class _DashboardPageState extends State<DashboardPage> {
                               end: Alignment.bottomRight),
                           borderRadius: BorderRadius.circular(25),
                           border: Border.all(color: Colors.white12),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Color(0x80000000),
                                 blurRadius: 15,
-                                offset: const Offset(0, 10))
+                                offset: Offset(0, 10))
                           ]),
                       child: widget.isAppLocked
                           ? GestureDetector(
@@ -246,6 +246,12 @@ class QuickAccessGrid extends StatefulWidget {
 class _QuickAccessGridState extends State<QuickAccessGrid> {
   List<String?> slots = List.filled(16, null);
   bool isEditing = false;
+  static final _currency0 =
+      NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
+  static final _currency2 =
+      NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 2);
+  static final _cryptoFmt =
+      NumberFormat.currency(locale: "en_US", symbol: "\$", decimalDigits: 0);
 
   @override
   void initState() {
@@ -333,7 +339,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                   border: Border.all(color: Colors.white10),
                                   boxShadow: [
                                     BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
+                                        color: const Color(0x33000000),
                                         blurRadius: 8,
                                         offset: const Offset(0, 4))
                                   ]),
@@ -383,12 +389,6 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
 
   @override
   Widget build(BuildContext context) {
-    final currency0 =
-        NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
-    final currency2 =
-        NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 2);
-    final cryptoFmt =
-        NumberFormat.currency(locale: "en_US", symbol: "\$", decimalDigits: 0);
     return GestureDetector(
         onTap: () => setState(() => isEditing = false),
         child: GridView.builder(
@@ -418,14 +418,14 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                             color: AppTheme.card,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: AppTheme.goldMain.withOpacity(0.15),
+                                color: const Color(0x26FFD700),
                                 width: 1),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
-                                  color: AppTheme.goldMain.withOpacity(0.06),
+                                  color: Color(0x0FFFD700),
                                   blurRadius: 8,
                                   spreadRadius: 1,
-                                  offset: const Offset(0, 2)),
+                                  offset: Offset(0, 2)),
                             ]),
                         child: assetId == null
                             ? const Center(
@@ -452,15 +452,15 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                         Text(
                                             asset.sellPrice > 0
                                                 ? (isDollar
-                                                    ? cryptoFmt.format(
+                                                    ? _cryptoFmt.format(
                                                         asset.usdPrice > 0
                                                             ? asset.usdPrice
                                                             : asset.sellPrice)
                                                     : (asset.category ==
                                                             'currency'
-                                                        ? currency2.format(
+                                                        ? _currency2.format(
                                                             asset.sellPrice)
-                                                        : currency0.format(
+                                                        : _currency0.format(
                                                             asset.sellPrice)))
                                                 : "-",
                                             style: const TextStyle(

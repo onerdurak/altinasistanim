@@ -183,7 +183,7 @@ class _ListingPageState extends State<ListingPage> {
                                                   const SizedBox(height: 2),
                                                   Text("x ${formatNumber(qty)} adet",
                                                       style: TextStyle(
-                                                          color: Colors.white.withOpacity(0.35),
+                                                          color: const Color(0x59FFFFFF),
                                                           fontSize: 11)),
                                                 ],
                                               ),
@@ -201,7 +201,7 @@ class _ListingPageState extends State<ListingPage> {
                                       ),
                                       if (!isLast)
                                         Divider(
-                                          color: Colors.white.withOpacity(0.06),
+                                          color: const Color(0x0FFFFFFF),
                                           height: 1,
                                           thickness: 0.5,
                                         ),
@@ -660,7 +660,7 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.4),
+                              color: const Color(0x66000000),
                               blurRadius: 10,
                               offset: const Offset(0, 5))
                         ]),
@@ -680,7 +680,7 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                       trailing: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                              color: AppTheme.goldMain.withOpacity(0.15),
+                              color: const Color(0x26FFD700),
                               shape: BoxShape.circle),
                           child: const Icon(Icons.add,
                               color: AppTheme.goldMain, size: 22)),
@@ -764,7 +764,7 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                        color: AppTheme.goldDim.withOpacity(0.4),
+                        color: const Color(0x66FFA000),
                         blurRadius: 20)
                   ]),
               child: Column(children: [
@@ -813,7 +813,7 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                               color: AppTheme.card,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                  color: Colors.white.withOpacity(0.04))),
+                                  color: const Color(0x0AFFFFFF))),
                           child: Row(
                             children: [
                               GestureDetector(
@@ -844,7 +844,7 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                                         Text(
                                             "x ${formatNumber(qty)} adet",
                                             style: TextStyle(
-                                                color: Colors.white.withOpacity(0.35),
+                                                color: const Color(0x59FFFFFF),
                                                 fontSize: 11)),
                                       ])
                                 ]),

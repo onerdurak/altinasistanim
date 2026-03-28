@@ -26,21 +26,6 @@ class FullScreenAssetPage extends StatefulWidget {
 class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
   String _selectedPeriod = '1A';
   bool _showHistory = false;
-  Timer? _priceTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _priceTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _priceTimer?.cancel();
-    super.dispose();
-  }
 
   List<Map<String, dynamic>> _generateChartData(String period) {
     List<Map<String, dynamic>> result = [];
@@ -151,7 +136,7 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
             color: isSelected
-                ? Colors.white.withOpacity(0.08)
+                ? const Color(0x14FFFFFF)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
@@ -349,7 +334,7 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
                           leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.04),
+                                  color: const Color(0x0AFFFFFF),
                                   shape: BoxShape.circle),
                               child: const Icon(Icons.history_rounded,
                                   color: Colors.grey, size: 18)),

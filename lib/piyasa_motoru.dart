@@ -95,27 +95,25 @@ class PiyasaMotoru {
 
   void _startTickerSimulation() {
     _simulationTimer?.cancel();
-    _simulationTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+    _simulationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!isLiveConnection) return;
 
+      // Sadece birkaç varlığı hafifçe oynasın (3-4 tane yeterli)
+      int changeCount = min(4, market.length);
       List<int> allIndices = List.generate(market.length, (i) => i)
         ..shuffle(_random);
-      int changeCount = (market.length * 0.6).toInt();
-      List<int> selectedIndices = allIndices.take(changeCount).toList();
 
-      for (int i in selectedIndices) {
-        var asset = market[i];
+      for (int i = 0; i < changeCount; i++) {
+        var asset = market[allIndices[i]];
         if (asset.baseSellPrice > 0) {
-          double maxDeviation = min(10.0, asset.baseSellPrice * 0.005);
-          double maxStep = min(1.5, asset.baseSellPrice * 0.001);
+          double maxDeviation = min(5.0, asset.baseSellPrice * 0.003);
+          double maxStep = min(0.8, asset.baseSellPrice * 0.0005);
           double step = (_random.nextDouble() - 0.5) * 2.0 * maxStep;
           double newSell = asset.sellPrice + step;
 
-          if (newSell > asset.baseSellPrice + maxDeviation) {
-            newSell = asset.baseSellPrice + maxDeviation;
-          } else if (newSell < asset.baseSellPrice - maxDeviation) {
-            newSell = asset.baseSellPrice - maxDeviation;
-          }
+          newSell = newSell.clamp(
+              asset.baseSellPrice - maxDeviation,
+              asset.baseSellPrice + maxDeviation);
 
           double proportionalChange =
               (newSell - asset.baseSellPrice) / asset.baseSellPrice;
@@ -128,11 +126,15 @@ class PiyasaMotoru {
       }
 
       _syncCustomAssets();
-      liveWalletVal = wallet.getTotalValue(market);
-      liveCreditVal =
-          credits.fold(0, (sum, i) => sum + i.getTotalValue(market));
-      liveDebtVal = debts.fold(0, (sum, i) => sum + i.getTotalValue(market));
-      liveNetWorth = liveWalletVal + liveCreditVal - liveDebtVal;
+
+      // Portfolio değerlerini her tick yerine sadece 4 tick'te 1 hesapla (12sn)
+      if (timer.tick % 4 == 0) {
+        liveWalletVal = wallet.getTotalValue(market);
+        liveCreditVal =
+            credits.fold(0, (sum, i) => sum + i.getTotalValue(market));
+        liveDebtVal = debts.fold(0, (sum, i) => sum + i.getTotalValue(market));
+        liveNetWorth = liveWalletVal + liveCreditVal - liveDebtVal;
+      }
 
       onUpdate();
     });

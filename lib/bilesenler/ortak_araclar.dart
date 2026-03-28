@@ -32,14 +32,14 @@ class AssetCoin extends StatelessWidget {
                 colors: colors,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
-                  color: colors.last.withOpacity(0.4),
+                  color: Color(0x66FBC02D),
                   blurRadius: 4,
-                  offset: const Offset(1, 1))
+                  offset: Offset(1, 1))
             ],
             border:
-                Border.all(color: Colors.white.withOpacity(0.4), width: 1)),
+                Border.all(color: const Color(0x66FFFFFF), width: 1)),
         alignment: Alignment.center,
         child: Text(type.label,
             style: TextStyle(
@@ -62,18 +62,13 @@ class AssetCoin extends StatelessWidget {
                 radius: 1.2),
             boxShadow: [
               BoxShadow(
-                  color: config.outer.withOpacity(0.45),
+                  color: config.outer.withAlpha(115),
                   blurRadius: 6,
                   spreadRadius: 0.5,
                   offset: const Offset(1, 2)),
-              BoxShadow(
-                  color: config.inner.withOpacity(0.25),
-                  blurRadius: 10,
-                  spreadRadius: -1,
-                  offset: const Offset(-1, -1)),
             ],
             border: Border.all(
-                color: Colors.white.withOpacity(0.35), width: 0.8)),
+                color: const Color(0x59FFFFFF), width: 0.8)),
         alignment: Alignment.center,
         child: Text(config.symbol,
             style: TextStyle(

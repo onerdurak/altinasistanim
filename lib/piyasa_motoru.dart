@@ -38,6 +38,7 @@ class PiyasaMotoru {
   Timer? _refreshTimer;
   Timer? _simulationTimer;
   final Random _random = Random();
+  DateTime? _lastFetchTime;
 
   PiyasaMotoru({required this.onUpdate});
 
@@ -55,16 +56,23 @@ class PiyasaMotoru {
     _initializeMarketSkeleton();
     loadMarketOrder();
     loadAllUserData().then((_) {
+      // 1. Önce cache'den hızlı aç (eski verilerle anında göster)
       loadMarketCache();
       _recalcLiveValues();
+
+      // 2. Sonra 1 kez veri çek, matrix başlat
       fetchLiveData().then((_) {
         _recalcLiveValues();
+        _lastFetchTime = DateTime.now();
         fillHistoricalGaps();
       });
     });
 
-    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
-      fetchLiveData(silent: true);
+    // 5 dakikada bir veri çek (arada sadece matrix çalışır)
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
+      fetchLiveData(silent: true).then((_) {
+        _lastFetchTime = DateTime.now();
+      });
     });
     _startTickerSimulation();
   }
@@ -131,7 +139,14 @@ class PiyasaMotoru {
   }
 
   // --- KARMA MOTOR: SHEETS + BİNANCE ENTEGRE ---
-  Future<void> fetchLiveData({bool silent = false}) async {
+  // 5 dakikada 1 çeker, arada matrix simülasyonu çalışır
+  Future<void> fetchLiveData({bool silent = false, bool force = false}) async {
+    // Son çekimden 5 dakika geçmediyse ve zorla değilse atla
+    if (silent && !force && _lastFetchTime != null) {
+      final elapsed = DateTime.now().difference(_lastFetchTime!);
+      if (elapsed.inMinutes < 5) return;
+    }
+
     if (!silent) {
       isLoading = true;
       onUpdate();
@@ -287,6 +302,7 @@ class PiyasaMotoru {
       isLiveConnection = anySuccess;
 
       if (anySuccess) {
+        _lastFetchTime = DateTime.now();
         _syncCustomAssets();
         updateDailyHistory();
         saveMarketCache();

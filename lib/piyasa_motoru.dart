@@ -47,6 +47,14 @@ class PiyasaMotoru {
 
   void _recalcLiveValues() {
     _syncCustomAssets();
+    // TL her zaman 1₺ = 1₺
+    try {
+      var tl = market.firstWhere((e) => e.id == "tl");
+      tl.sellPrice = 1;
+      tl.buyPrice = 1;
+      tl.baseSellPrice = 1;
+      tl.baseBuyPrice = 1;
+    } catch (_) {}
     liveWalletVal = wallet.getTotalValue(market);
     liveCreditVal =
         credits.fold(0, (sum, i) => sum + i.getTotalValue(market));
@@ -58,18 +66,17 @@ class PiyasaMotoru {
   void baslat() {
     _initializeMarketSkeleton();
     loadMarketOrder();
-    loadAllUserData().then((_) {
+    loadAllUserData().then((_) async {
       // 1. Önce cache'den hızlı aç (eski verilerle anında göster)
-      loadMarketCache();
+      await loadMarketCache();
       _recalcLiveValues();
 
       // 2. Sonra 1 kez veri çek, matrix başlat
-      fetchLiveData().then((_) {
-        _recalcLiveValues();
-        _lastFetchTime = DateTime.now();
-        // Sheets'ten geçmiş verileri çek, sonra boşlukları doldur
-        _fetchHistoricalFromSheets().then((_) => fillHistoricalGaps());
-      });
+      await fetchLiveData();
+      _recalcLiveValues();
+      _lastFetchTime = DateTime.now();
+      // Sheets'ten geçmiş verileri çek, sonra boşlukları doldur
+      _fetchHistoricalFromSheets().then((_) => fillHistoricalGaps());
     });
 
     // 5 dakikada bir veri çek (arada sadece matrix çalışır)
@@ -97,42 +104,46 @@ class PiyasaMotoru {
     } catch (e) {}
   }
 
+  // Hareketli emtialar (her tick oynasın)
+  static const _alwaysTick = {'btc', 'eth', 'ons'};
+  // Sabit emtialar (asla oynamasın)
+  static const _neverTick = {'tl'};
+
   void _startTickerSimulation() {
     _simulationTimer?.cancel();
-    _simulationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _simulationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!isLiveConnection) return;
 
-      // Sadece birkaç varlığı hafifçe oynasın (3-4 tane yeterli)
-      int changeCount = min(4, market.length);
-      List<int> allIndices = List.generate(market.length, (i) => i)
-        ..shuffle(_random);
+      for (var asset in market) {
+        if (_neverTick.contains(asset.id)) continue;
+        if (asset.baseSellPrice <= 0) continue;
 
-      for (int i = 0; i < changeCount; i++) {
-        var asset = market[allIndices[i]];
-        if (asset.baseSellPrice > 0) {
-          double maxDeviation = min(5.0, asset.baseSellPrice * 0.003);
-          double maxStep = min(0.8, asset.baseSellPrice * 0.0005);
-          double step = (_random.nextDouble() - 0.5) * 2.0 * maxStep;
-          double newSell = asset.sellPrice + step;
+        // BTC/ETH/ONS her tick, diğerleri her 3 tick'te
+        bool shouldTick = _alwaysTick.contains(asset.id) ||
+            timer.tick % 3 == 0;
+        if (!shouldTick) continue;
 
-          newSell = newSell.clamp(
-              asset.baseSellPrice - maxDeviation,
-              asset.baseSellPrice + maxDeviation);
+        double intensity = _alwaysTick.contains(asset.id) ? 0.0008 : 0.0003;
+        double maxDeviation = min(5.0, asset.baseSellPrice * 0.003);
+        double maxStep = asset.baseSellPrice * intensity;
+        double step = (_random.nextDouble() - 0.5) * 2.0 * maxStep;
+        double newSell = (asset.sellPrice + step).clamp(
+            asset.baseSellPrice - maxDeviation,
+            asset.baseSellPrice + maxDeviation);
 
-          double proportionalChange =
-              (newSell - asset.baseSellPrice) / asset.baseSellPrice;
-          asset.sellPrice = newSell;
-          asset.buyPrice = asset.baseBuyPrice * (1 + proportionalChange);
-          if (asset.isDollarBase && asset.baseUsdPrice > 0) {
-            asset.usdPrice = asset.baseUsdPrice * (1 + proportionalChange);
-          }
+        double proportionalChange =
+            (newSell - asset.baseSellPrice) / asset.baseSellPrice;
+        asset.sellPrice = newSell;
+        asset.buyPrice = asset.baseBuyPrice * (1 + proportionalChange);
+        if (asset.isDollarBase && asset.baseUsdPrice > 0) {
+          asset.usdPrice = asset.baseUsdPrice * (1 + proportionalChange);
         }
       }
 
       _syncCustomAssets();
 
-      // Portfolio değerlerini her tick yerine sadece 4 tick'te 1 hesapla (12sn)
-      if (timer.tick % 4 == 0) {
+      // Portfolio değerlerini her 3 tick'te 1 hesapla (15sn)
+      if (timer.tick % 3 == 0) {
         liveWalletVal = wallet.getTotalValue(market);
         liveCreditVal =
             credits.fold(0, (sum, i) => sum + i.getTotalValue(market));
@@ -185,9 +196,9 @@ class PiyasaMotoru {
     }
   }
 
-  // Sheets verisini 30 saniye sonra arka planda çek (Binance'i beklemesin)
+  // Sheets verisini 1 saniye sonra arka planda çek (Binance'i beklemesin)
   void _scheduleSheetsUpdate() {
-    Future.delayed(const Duration(seconds: 4), () async {
+    Future.delayed(const Duration(seconds: 1), () async {
       await _fetchSheetsData();
     });
   }
@@ -214,6 +225,10 @@ class PiyasaMotoru {
                 onTimeout: () => http.Response('', 408)),
         http.get(Uri.parse(
             'https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT'))
+            .timeout(const Duration(seconds: 5),
+                onTimeout: () => http.Response('', 408)),
+        http.get(Uri.parse(
+            'https://api.binance.com/api/v3/ticker/24hr?symbol=GBPUSDT'))
             .timeout(const Duration(seconds: 5),
                 onTimeout: () => http.Response('', 408)),
       ]);
@@ -277,6 +292,19 @@ class PiyasaMotoru {
         for (var a in market) {
           if (a.id == 'eth') {
             a.applyNewPrices(ethTry, ethTry, ethChange, nUsd: ethUsd);
+          }
+        }
+      }
+
+      if (results[5].statusCode == 200) {
+        final d = json.decode(results[5].body);
+        double gbpUsd = double.parse(d['lastPrice']);
+        double gbpChange = double.parse(d['priceChangePercent']);
+        double gbpTry = gbpUsd * usdTry;
+        for (var a in market) {
+          if (a.id == 'gbp') {
+            a.applyNewPrices(
+                gbpTry * a.sellMarkup, gbpTry * a.buyMarkup, gbpChange);
           }
         }
       }
@@ -513,6 +541,7 @@ class PiyasaMotoru {
         _fetchKlines('PAXGUSDT', startTime, limit),
         _fetchKlines('BTCUSDT', startTime, limit),
         _fetchKlines('ETHUSDT', startTime, limit),
+        _fetchKlines('GBPUSDT', startTime, limit),
       ]);
 
       Map<String, double> usdRates = results[0];
@@ -520,6 +549,7 @@ class PiyasaMotoru {
       Map<String, double> goldOnsUsd = results[2];
       Map<String, double> btcUsd = results[3];
       Map<String, double> ethUsd = results[4];
+      Map<String, double> gbpUsdRates = results[5];
 
       if (usdRates.isEmpty && goldOnsUsd.isEmpty) return;
 
@@ -569,10 +599,13 @@ class PiyasaMotoru {
 
         double silverBaseTL = rawBase / 66.0;
         double eurTry = eurUsd * usdTry;
+        double gbpUsd = gbpUsdRates[dateKey] ?? 1.27;
+        double gbpTry = gbpUsd * usdTry;
 
         dPrices["silver"] = silverBaseTL * 1.0957;
-        dPrices["usd"] = usdTry * 1.004;
-        dPrices["eur"] = eurTry * 1.004;
+        dPrices["usd"] = usdTry;
+        dPrices["eur"] = eurTry;
+        dPrices["gbp"] = gbpTry;
         dPrices["ons"] = paxgUsd;    // USD bazında
         dPrices["btc"] = btc;         // USD bazında
         dPrices["eth"] = eth;         // USD bazında
@@ -662,6 +695,10 @@ class PiyasaMotoru {
           sellMarkup: 1.000,
           buyMarkup: 1.000,
           isDollarBase: true),
+      AssetType("tl", [], "₺", "Türk Lirası", 1, 1, "currency",
+          manualInput: false,
+          sellMarkup: 1.000,
+          buyMarkup: 1.000),
     ];
   }
 

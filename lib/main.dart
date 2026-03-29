@@ -102,13 +102,21 @@ class _MainLayoutState extends State<MainLayout> {
   String _appPin = "0000";
   bool _isPageAnimating = false;
 
+  bool _updateScheduled = false;
+
   @override
   void initState() {
     super.initState();
     _loadAuthData();
 
     _motor = PiyasaMotoru(onUpdate: () {
-      if (mounted && !_isPageAnimating) setState(() {});
+      if (mounted && !_isPageAnimating && !_updateScheduled) {
+        _updateScheduled = true;
+        Future.microtask(() {
+          if (mounted) setState(() {});
+          _updateScheduled = false;
+        });
+      }
     });
     _motor.baslat();
 

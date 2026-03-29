@@ -356,7 +356,7 @@ class _PortfolioCreatorState extends State<PortfolioCreator> {
                         borderSide: BorderSide.none))),
           ),
           SizedBox(
-            height: 130,
+            height: 72,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -368,46 +368,46 @@ class _PortfolioCreatorState extends State<PortfolioCreator> {
                 return GestureDetector(
                   onTap: () => _updateQuantity(asset),
                   child: Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    width: 105,
+                    margin: const EdgeInsets.only(right: 8),
+                    width: 64,
                     decoration: BoxDecoration(
                         color: AppTheme.card,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.white10)),
-                    child: Stack(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Icon(Icons.add_circle,
-                                color: AppTheme.goldMain, size: 20)),
-                        Center(
-                            child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                              AssetCoin(type: asset, size: 40),
-                              const SizedBox(height: 10),
-                              Text(asset.label,
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16)),
-                              const SizedBox(height: 2),
-                              Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 4),
-                                  child: Text(asset.name,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                          color: Colors.grey, fontSize: 10),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1))
-                            ])),
+                        AssetCoin(type: asset, size: 26),
+                        const SizedBox(height: 4),
+                        Text(asset.label,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11)),
+                        Text(asset.name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.grey, fontSize: 7),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1),
                       ],
                     ),
                   ),
                 );
               },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.arrow_forward_ios_rounded,
+                    color: Colors.white24, size: 12),
+                SizedBox(width: 2),
+                Text("kaydır",
+                    style: TextStyle(color: Colors.white24, fontSize: 10)),
+              ],
             ),
           ),
           const Divider(color: Colors.white10, height: 30),

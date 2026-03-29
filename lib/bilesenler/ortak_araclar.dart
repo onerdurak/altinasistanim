@@ -101,10 +101,18 @@ class AssetCoin extends StatelessWidget {
           return _CoinStyle(
               const Color(0xFF8E24AA), const Color(0xFF4A148C),
               Colors.white, '£');
+        } else if (type.id == 'tl') {
+          return _CoinStyle(
+              const Color(0xFFD32F2F), const Color(0xFF8B0000),
+              Colors.white, 'TL');
+        } else if (type.id == 'eur') {
+          return _CoinStyle(
+              const Color(0xFF1E88E5), const Color(0xFF0D47A1),
+              Colors.white, '€');
         }
         return _CoinStyle(
             const Color(0xFF1E88E5), const Color(0xFF0D47A1),
-            Colors.white, '€');
+            Colors.white, type.label);
       case 'crypto':
         if (type.id == 'btc') {
           return _CoinStyle(

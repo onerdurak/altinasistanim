@@ -88,7 +88,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   },
                   child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(25),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       decoration: BoxDecoration(
                           gradient: const LinearGradient(
                               colors: [Color(0xFF2E2E2E), Color(0xFF111111)],
@@ -148,16 +148,16 @@ class _DashboardPageState extends State<DashboardPage> {
                                             size: 20),
                                         onPressed: _toggleObscure)
                                   ]),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 6),
                               Text(
                                   _isObscured
                                       ? "₺ ***"
                                       : currency.format(widget.netWorth),
                                   style: const TextStyle(
                                       color: Color(0xFFEDEDED),
-                                      fontSize: 40,
+                                      fontSize: 32,
                                       fontWeight: FontWeight.w900)),
-                              const Divider(color: Colors.white10, height: 40),
+                              const Divider(color: Colors.white10, height: 24),
                               Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceAround,
@@ -270,12 +270,13 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
     } else {
       setState(() {
         const defaultSlots = [
-          "gram", "gram22", "ceyrek", "yarim",
-          "tam", "ata", "yarim_gram22", "ons",
-          "usd", "eur", "silver", "btc",
+          "gram22", "gram", "ceyrek", "yarim",
+          "eur", "usd", "tam", "resat",
+          "ons", "btc", "silver", "has",
+          "ata", "eth", "gbp", null,
         ];
         for (int j = 0; j < defaultSlots.length && j < 16; j++) {
-          slots[j] = defaultSlots[j];
+          slots[j] = defaultSlots[j]; // son eleman null = boş kutucuk
         }
       });
     }
@@ -327,8 +328,10 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                           itemCount: widget.market.length,
                           itemBuilder: (c, i) {
                             var item = widget.market[i];
-                            // Fiyatı olmayan veya hatalı verileri listeleme
+                            // Fiyatı olmayan veya zaten ekli emtiaları gizle
                             if (item.sellPrice <= 0 && !item.isDollarBase)
+                              return const SizedBox.shrink();
+                            if (slots.contains(item.id))
                               return const SizedBox.shrink();
 
                             return Container(
@@ -389,7 +392,15 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Column(
+      children: [
+        if (isEditing)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text("emtiaya basarak kaldırabilirsiniz",
+                style: TextStyle(color: Colors.white38, fontSize: 10)),
+          ),
+        GestureDetector(
         onTap: () => setState(() => isEditing = false),
         child: GridView.builder(
             shrinkWrap: true,
@@ -490,10 +501,12 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                   decoration: const BoxDecoration(
                                       color: AppTheme.neonRed,
                                       shape: BoxShape.circle),
-                                  child: const Icon(Icons.close,
+                                  child: const Icon(Icons.remove,
                                       color: Colors.white, size: 16))))
                   ])));
-            }));
+            })),
+      ],
+    );
   }
 }
 

@@ -19,6 +19,7 @@ class DashboardPage extends StatefulWidget {
   final Function(String, String, Color) onStatTap;
   final Future<void> Function() onRefresh;
   final bool isPrimaryEngineActive;
+  final bool isConnected;
 
   const DashboardPage(
       {super.key,
@@ -33,6 +34,7 @@ class DashboardPage extends StatefulWidget {
       required this.onAssetTap,
       required this.onStatTap,
       required this.isPrimaryEngineActive,
+      required this.isConnected,
       required this.onRefresh});
 
   @override
@@ -78,6 +80,23 @@ class _DashboardPageState extends State<DashboardPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
           child: Column(children: [
+            if (!widget.isConnected)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                    color: const Color(0xFF3E2723),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.withAlpha(80))),
+                child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.wifi_off, color: Colors.orange, size: 16),
+                      SizedBox(width: 8),
+                      Text("İnternet bağlantısı yok",
+                          style: TextStyle(color: Colors.orange, fontSize: 12)),
+                    ])),
             Stack(children: [
               GestureDetector(
                   onTap: () {
@@ -159,7 +178,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               const Divider(color: Colors.white10, height: 24),
                               Row(
                                   mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                      MainAxisAlignment.spaceEvenly,
                                   children: [
                                     GestureDetector(
                                         behavior: HitTestBehavior.opaque,

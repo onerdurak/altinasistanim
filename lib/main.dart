@@ -409,6 +409,7 @@ class _MainLayoutState extends State<MainLayout> {
                         color: color)));
           },
           isPrimaryEngineActive: _motor.isPrimaryEngineActive,
+          isConnected: _motor.isLiveConnection,
           onRefresh: () async => await _motor.fetchLiveData(silent: false)),
       ListingPage(
           items: _motor.debts,

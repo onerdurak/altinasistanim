@@ -40,6 +40,8 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  static final _currency =
+      NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
   bool _isObscured = false;
   bool _isLoadingPrefs = true;
 
@@ -68,9 +70,6 @@ class _DashboardPageState extends State<DashboardPage> {
     if (_isLoadingPrefs)
       return const Center(
           child: CircularProgressIndicator(color: AppTheme.goldMain));
-    final currency =
-        NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
-
     return RefreshIndicator(
       color: AppTheme.goldMain,
       backgroundColor: AppTheme.card,
@@ -152,7 +151,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               Text(
                                   _isObscured
                                       ? "₺ ***"
-                                      : currency.format(widget.netWorth),
+                                      : _currency.format(widget.netWorth),
                                   style: const TextStyle(
                                       color: Color(0xFFEDEDED),
                                       fontSize: 32,
@@ -395,6 +394,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
 
   @override
   Widget build(BuildContext context) {
+    final marketMap = {for (var a in widget.market) a.id: a};
     return GestureDetector(
         onTap: () { if (isEditing) setState(() => isEditing = false); },
         child: GridView.builder(
@@ -408,10 +408,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                 mainAxisSpacing: 10),
             itemBuilder: (c, i) {
               String? assetId = slots[i];
-              AssetType? asset;
-              if (assetId != null)
-                asset = widget.market.firstWhere((e) => e.id == assetId,
-                    orElse: () => widget.market[0]);
+              AssetType? asset = assetId != null ? marketMap[assetId] : null;
               bool isDollar = asset?.isDollarBase ?? false;
 
               return RepaintBoundary(

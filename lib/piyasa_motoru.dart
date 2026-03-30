@@ -51,13 +51,13 @@ class PiyasaMotoru {
   void recalcLiveValues({bool notify = false}) {
     _syncCustomAssets();
     // TL her zaman 1₺ = 1₺
-    try {
-      var tl = market.firstWhere((e) => e.id == "tl");
-      tl.sellPrice = 1;
-      tl.buyPrice = 1;
-      tl.baseSellPrice = 1;
-      tl.baseBuyPrice = 1;
-    } catch (_) {}
+    final tlIdx = market.indexWhere((e) => e.id == "tl");
+    if (tlIdx >= 0) {
+      market[tlIdx].sellPrice = 1;
+      market[tlIdx].buyPrice = 1;
+      market[tlIdx].baseSellPrice = 1;
+      market[tlIdx].baseBuyPrice = 1;
+    }
     liveWalletVal = wallet.getTotalValue(market);
     liveCreditVal =
         credits.fold(0, (sum, i) => sum + i.getTotalValue(market));
@@ -97,14 +97,16 @@ class PiyasaMotoru {
   }
 
   void _syncCustomAssets() {
-    try {
-      var gram22 = market.firstWhere((e) => e.id == "gram22");
-      var yarimGram = market.firstWhere((e) => e.id == "yarim_gram22");
+    final g22Idx = market.indexWhere((e) => e.id == "gram22");
+    final ygIdx = market.indexWhere((e) => e.id == "yarim_gram22");
+    if (g22Idx >= 0 && ygIdx >= 0) {
+      final gram22 = market[g22Idx];
+      final yarimGram = market[ygIdx];
       yarimGram.baseSellPrice = gram22.baseSellPrice / 2;
       yarimGram.baseBuyPrice = gram22.baseBuyPrice / 2;
       yarimGram.sellPrice = gram22.sellPrice / 2;
       yarimGram.buyPrice = gram22.buyPrice / 2;
-    } catch (e) {}
+    }
   }
 
   // Sabit emtialar

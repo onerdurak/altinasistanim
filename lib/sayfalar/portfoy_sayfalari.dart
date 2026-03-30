@@ -28,6 +28,8 @@ class ListingPage extends StatefulWidget {
 }
 
 class _ListingPageState extends State<ListingPage> {
+  static final _currency =
+      NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
   String? _editingItemId;
   final Set<String> _collapsedItems = {};
 
@@ -47,9 +49,7 @@ class _ListingPageState extends State<ListingPage> {
                     style: TextStyle(color: Colors.white24)))),
       );
     }
-    final currency =
-        NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
-
+    final marketMap = {for (var a in widget.market) a.id: a};
     return GestureDetector(
       onTap: () => setState(() => _editingItemId = null),
       child: RefreshIndicator(
@@ -119,7 +119,7 @@ class _ListingPageState extends State<ListingPage> {
                                           overflow: TextOverflow.ellipsis),
                                     ])),
                                 const SizedBox(width: 10),
-                                Text(currency.format(val),
+                                Text(_currency.format(val),
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 16,
@@ -157,9 +157,7 @@ class _ListingPageState extends State<ListingPage> {
                                   final entry = assetEntries[idx];
                                   final assetId = entry.key;
                                   final qty = entry.value;
-                                  final asset = widget.market.cast<AssetType?>().firstWhere(
-                                      (g) => g!.id == assetId,
-                                      orElse: () => null);
+                                  final asset = marketMap[assetId];
                                   if (asset == null) return const SizedBox.shrink();
                                   final assetVal = asset.sellPrice * qty;
                                   final isLast = idx == item.assets.length - 1;
@@ -189,7 +187,7 @@ class _ListingPageState extends State<ListingPage> {
                                               ),
                                             ),
                                             const SizedBox(width: 10),
-                                            Text(currency.format(assetVal),
+                                            Text(_currency.format(assetVal),
                                                 style: TextStyle(
                                                     color: widget.isCredit
                                                         ? const Color(0xFF66BB6A)
@@ -255,6 +253,8 @@ class PortfolioCreator extends StatefulWidget {
 }
 
 class _PortfolioCreatorState extends State<PortfolioCreator> {
+  static final _currency =
+      NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
   final _nameCtrl = TextEditingController();
   final Map<String, double> _liveAssets = {};
 
@@ -328,12 +328,11 @@ class _PortfolioCreatorState extends State<PortfolioCreator> {
 
   @override
   Widget build(BuildContext context) {
-    final currency =
-        NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
+    final marketMap = {for (var a in widget.market) a.id: a};
     double liveTotal = 0;
     _liveAssets.forEach((k, v) {
-      var asset = widget.market.firstWhere((g) => g.id == k);
-      liveTotal += asset.sellPrice * v;
+      var asset = marketMap[k];
+      if (asset != null) liveTotal += asset.sellPrice * v;
     });
 
     return Scaffold(
@@ -418,7 +417,8 @@ class _PortfolioCreatorState extends State<PortfolioCreator> {
               itemBuilder: (c, i) {
                 String id = _liveAssets.keys.elementAt(i);
                 double qty = _liveAssets[id]!;
-                var asset = widget.market.firstWhere((g) => g.id == id);
+                var asset = marketMap[id];
+                if (asset == null) return const SizedBox.shrink();
                 return Container(
                   margin:
                       const EdgeInsets.only(bottom: 10, left: 16, right: 16),
@@ -440,7 +440,7 @@ class _PortfolioCreatorState extends State<PortfolioCreator> {
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold)),
                             const SizedBox(height: 2),
-                            Text(currency.format(qty * asset.sellPrice),
+                            Text(_currency.format(qty * asset.sellPrice),
                                 style: const TextStyle(
                                     color: Colors.grey, fontSize: 13))
                           ])),
@@ -506,7 +506,7 @@ class _PortfolioCreatorState extends State<PortfolioCreator> {
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text("TOPLAM DEĞER",
                       style: TextStyle(color: Colors.grey, fontSize: 10)),
-                  Text(currency.format(liveTotal),
+                  Text(_currency.format(liveTotal),
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -553,22 +553,9 @@ class PortfolioDetail extends StatefulWidget {
 }
 
 class _PortfolioDetailState extends State<PortfolioDetail> {
-  Timer? _localTimer;
+  static final _currency =
+      NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
   String? _deletingAssetId;
-
-  @override
-  void initState() {
-    super.initState();
-    _localTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _localTimer?.cancel();
-    super.dispose();
-  }
 
   void _addAssetDialog(AssetType asset) {
     if (asset.manualInput) {
@@ -740,8 +727,7 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
 
   @override
   Widget build(BuildContext context) {
-    final currency =
-        NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
+    final marketMap = {for (var a in widget.market) a.id: a};
     double total = widget.item.getTotalValue(widget.market);
 
     return Scaffold(
@@ -772,7 +758,7 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                     style: const TextStyle(
                         color: Colors.black54, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 5),
-                Text(currency.format(total),
+                Text(_currency.format(total),
                     style: const TextStyle(
                         color: Colors.black,
                         fontSize: 36,
@@ -787,9 +773,8 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                 itemBuilder: (c, i) {
                   String id = widget.item.assets.keys.elementAt(i);
                   double qty = widget.item.assets[id]!;
-                  var asset = widget.market.firstWhere((g) => g.id == id,
-                      orElse: () =>
-                          AssetType("0", [], "?", "?", 0.0, 0.0, "gold"));
+                  var asset = marketMap[id] ??
+                      AssetType("0", [], "?", "?", 0.0, 0.0, "gold");
                   // Kasa: kuyumcu alış (sende varsa satarsın), Borç/Alacak: kuyumcu satış
                   double itemPrice =
                       widget.isWallet ? asset.buyPrice : asset.sellPrice;
@@ -832,7 +817,7 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                                                 fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 3),
                                         Text(
-                                            currency.format(qty * itemPrice),
+                                            _currency.format(qty * itemPrice),
                                             style: TextStyle(
                                                 color: widget.isWallet
                                                     ? Colors.grey

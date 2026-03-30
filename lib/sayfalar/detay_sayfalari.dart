@@ -26,6 +26,8 @@ class FullScreenAssetPage extends StatefulWidget {
 class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
   String _selectedPeriod = '1A';
   bool _showHistory = false;
+  List<Map<String, dynamic>>? _cachedChartData;
+  String? _cachedPeriod;
 
   List<Map<String, dynamic>> _generateChartData(String period) {
     List<Map<String, dynamic>> result = [];
@@ -169,7 +171,11 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
         ? widget.asset.usdPrice
         : widget.asset.buyPrice);
 
-    List<Map<String, dynamic>> chartData = _generateChartData(_selectedPeriod);
+    if (_cachedPeriod != _selectedPeriod || _cachedChartData == null) {
+      _cachedChartData = _generateChartData(_selectedPeriod);
+      _cachedPeriod = _selectedPeriod;
+    }
+    final chartData = _cachedChartData!;
 
     return Container(
       height: _showHistory

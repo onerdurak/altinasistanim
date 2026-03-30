@@ -20,12 +20,13 @@ class FullMarketPage extends StatefulWidget {
 }
 
 class _FullMarketPageState extends State<FullMarketPage> {
+  static final _fmtGold =
+      NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
+  static final _fmtCurrency =
+      NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 2);
+
   @override
   Widget build(BuildContext context) {
-    final fmtGold =
-        NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
-    final fmtCurrency =
-        NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 2);
 
     return Scaffold(
         appBar: AppBar(title: const Text("TÜM PİYASA")),
@@ -53,11 +54,11 @@ class _FullMarketPageState extends State<FullMarketPage> {
                     .format(item.usdPrice);
                 buyStr = priceStr;
               } else if (item.category == 'currency') {
-                priceStr = fmtCurrency.format(item.sellPrice);
-                buyStr = fmtCurrency.format(item.buyPrice);
+                priceStr = _fmtCurrency.format(item.sellPrice);
+                buyStr = _fmtCurrency.format(item.buyPrice);
               } else {
-                priceStr = fmtGold.format(item.sellPrice);
-                buyStr = fmtGold.format(item.buyPrice);
+                priceStr = _fmtGold.format(item.sellPrice);
+                buyStr = _fmtGold.format(item.buyPrice);
               }
 
               return GestureDetector(

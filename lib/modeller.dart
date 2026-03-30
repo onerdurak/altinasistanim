@@ -34,12 +34,11 @@ class PortfolioItem {
       required this.date});
 
   double getTotalValue(List<AssetType> market) {
+    final map = {for (var a in market) a.id: a};
     double total = 0;
     assets.forEach((assetId, amount) {
-      try {
-        final asset = market.firstWhere((element) => element.id == assetId);
-        total += asset.sellPrice * amount;
-      } catch (e) {}
+      final asset = map[assetId];
+      if (asset != null) total += asset.sellPrice * amount;
     });
     return total;
   }

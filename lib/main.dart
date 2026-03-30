@@ -466,7 +466,6 @@ class _MainLayoutState extends State<MainLayout> {
         body: PageView(
                 physics: const BouncingScrollPhysics(),
                 controller: _pageController,
-                allowImplicitScrolling: true,
                 onPageChanged: (i) {
                   _isPageAnimating = false;
                   setState(() => _navIndex = i);

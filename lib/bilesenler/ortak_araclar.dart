@@ -139,6 +139,7 @@ class _CoinStyle {
 }
 
 class MiniStat extends StatelessWidget {
+  static final _fmt = NumberFormat.compact();
   final String label;
   final double val;
   final Color color;
@@ -148,10 +149,9 @@ class MiniStat extends StatelessWidget {
       {super.key, this.isObscured = false});
   @override
   Widget build(BuildContext context) {
-    final f = NumberFormat.compact();
     return Column(children: [
       Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-      Text(isObscured ? "***" : f.format(val),
+      Text(isObscured ? "***" : _fmt.format(val),
           style: TextStyle(
               color: color, fontWeight: FontWeight.bold, fontSize: 15))
     ]);

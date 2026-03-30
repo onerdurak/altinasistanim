@@ -703,7 +703,7 @@ class PiyasaMotoru {
       AssetType("ata", ["ATAALTIN"], "A", "Ata Altın", 0, 0, "gold",
           sellMarkup: 1.0934, buyMarkup: 1.0495),
       AssetType("tl", [], "₺", "Türk Lirası", 1, 1, "currency",
-          manualInput: false,
+          manualInput: true,
           sellMarkup: 1.000,
           buyMarkup: 1.000),
       AssetType("yarim_gram22", [], "0.5", "0.5 Gram (22K)", 0, 0, "gold",

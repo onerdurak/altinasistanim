@@ -109,12 +109,9 @@ class PiyasaMotoru {
   // Sabit emtialar (asla oynamasın)
   static const _neverTick = {'tl'};
 
-  bool get _isWeekend {
-    final now = DateTime.now();
-    // Cumartesi veya Pazar (Pazar gecesi 00:00'dan itibaren açık)
-    return now.weekday == DateTime.saturday ||
-        (now.weekday == DateTime.sunday && now.hour < 0); // Pazar her zaman açık
-  }
+  // Her emtia için mevcut yön ve adım sayacı (yumuşak hareket)
+  final Map<String, int> _direction = {}; // +1 veya -1
+  final Map<String, int> _stepsLeft = {}; // kaç adım kaldı bu yönde
 
   void _startTickerSimulation() {
     _simulationTimer?.cancel();
@@ -130,13 +127,50 @@ class PiyasaMotoru {
         // Cumartesi: sadece BTC/ETH/ONS çalışır, Pazar: hepsi çalışır
         if (isSaturday && !_weekendActive.contains(asset.id)) continue;
 
-        // Tüm emtialar aynı anda, her tick hareket eder
-        double maxDev = min(10.0, asset.baseSellPrice * 0.005);
-        double maxStep = asset.baseSellPrice * 0.0012;
-        double step = (_random.nextDouble() - 0.5) * 2.0 * maxStep;
-        double newSell = (asset.sellPrice + step).clamp(
-            asset.baseSellPrice - maxDev,
-            asset.baseSellPrice + maxDev);
+        // Yön belirle: mevcut yönde adım kalmadıysa yeni yön seç
+        if ((_stepsLeft[asset.id] ?? 0) <= 0) {
+          // Gerçek fiyattan uzaklaştıysa merkeze dönme eğilimi
+          double drift = asset.sellPrice - asset.baseSellPrice;
+          if (drift.abs() > 8) {
+            // 8₺'den fazla sapma varsa kesinlikle geri dön
+            _direction[asset.id] = drift > 0 ? -1 : 1;
+          } else if (drift.abs() > 4) {
+            // 4-8₺ arasında %70 geri dönme eğilimi
+            _direction[asset.id] = (_random.nextDouble() < 0.7)
+                ? (drift > 0 ? -1 : 1)
+                : (drift > 0 ? 1 : -1);
+          } else {
+            // Merkeze yakınsa rastgele yön
+            _direction[asset.id] = _random.nextBool() ? 1 : -1;
+          }
+          // 2-5 adım bu yönde devam et (sıralı hareket: +1, +2, +3...)
+          _stepsLeft[asset.id] = 2 + _random.nextInt(4);
+        }
+
+        // Her tick'te 0.50₺ - 3.00₺ arası küçük adım (canlılık hissi)
+        double stepSize = 0.50 + _random.nextDouble() * 2.50;
+        double step = _direction[asset.id]! * stepSize;
+
+        // Toplam sapma max ±12₺
+        double newSell = asset.sellPrice + step;
+        newSell = newSell.clamp(
+            asset.baseSellPrice - 12.0,
+            asset.baseSellPrice + 12.0);
+
+        // Dolar bazlı emtialar için oransal adım (TL yerine % bazlı)
+        if (asset.isDollarBase && asset.baseSellPrice > 0) {
+          double pctStep = _direction[asset.id]! *
+              (0.0002 + _random.nextDouble() * 0.0008);
+          double pctDrift =
+              (asset.sellPrice - asset.baseSellPrice) / asset.baseSellPrice;
+          newSell = asset.sellPrice + asset.baseSellPrice * pctStep;
+          // Max ±0.5% sapma
+          newSell = newSell.clamp(
+              asset.baseSellPrice * 0.995,
+              asset.baseSellPrice * 1.005);
+        }
+
+        _stepsLeft[asset.id] = (_stepsLeft[asset.id] ?? 1) - 1;
 
         double proportionalChange =
             (newSell - asset.baseSellPrice) / asset.baseSellPrice;

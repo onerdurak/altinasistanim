@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
@@ -21,21 +20,6 @@ class FullMarketPage extends StatefulWidget {
 }
 
 class _FullMarketPageState extends State<FullMarketPage> {
-  Timer? _uiTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _uiTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _uiTimer?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +35,19 @@ class _FullMarketPageState extends State<FullMarketPage> {
             physics: const BouncingScrollPhysics(),
             itemCount: widget.market.length,
             onReorder: widget.onReorder,
+            proxyDecorator: (child, index, animation) {
+              return AnimatedBuilder(
+                animation: animation,
+                builder: (context, child) => Material(
+                  color: Colors.transparent,
+                  elevation: 4,
+                  shadowColor: Colors.black54,
+                  borderRadius: BorderRadius.circular(16),
+                  child: child,
+                ),
+                child: child,
+              );
+            },
             itemBuilder: (c, i) {
               var item = widget.market[i];
               String priceStr;

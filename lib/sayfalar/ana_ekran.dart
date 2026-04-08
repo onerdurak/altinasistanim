@@ -273,53 +273,6 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
   static final _cryptoFmt =
       NumberFormat.currency(locale: "en_US", symbol: "\$", decimalDigits: 0);
 
-  // --- Fiyat yönü takibi ---
-  final Map<String, double> _prevPrices = {};
-  final Map<String, int> _directions = {}; // 1=yukarı, -1=aşağı, 0=sabit
-  final Map<String, Timer> _resetTimers = {};
-
-  @override
-  void didUpdateWidget(QuickAccessGrid oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    for (final asset in widget.market) {
-      final prev = _prevPrices[asset.id] ?? 0.0;
-      final curr = asset.sellPrice;
-      if (prev > 0 && curr > 0 && (curr - prev).abs() > prev * 0.000001) {
-        final dir = curr > prev ? 1 : -1;
-        if (_directions[asset.id] != dir) {
-          setState(() => _directions[asset.id] = dir);
-          _resetTimers[asset.id]?.cancel();
-          _resetTimers[asset.id] = Timer(const Duration(seconds: 4), () {
-            if (mounted) setState(() => _directions.remove(asset.id));
-          });
-        }
-      }
-      _prevPrices[asset.id] = curr;
-    }
-  }
-
-  @override
-  void dispose() {
-    for (final t in _resetTimers.values) {
-      t.cancel();
-    }
-    super.dispose();
-  }
-
-  /// Border rengi: yukarı=yeşil, aşağı=kırmızı, sabit=altın sarısı
-  Color _tileBorderColor(int dir) {
-    if (dir > 0) return AppTheme.neonGreen.withOpacity(0.75);
-    if (dir < 0) return AppTheme.neonRed.withOpacity(0.75);
-    return const Color(0x26FFD700);
-  }
-
-  /// Glow rengi: yukarı=yeşil, aşağı=kırmızı, sabit=altın sarısı
-  Color _tileGlowColor(int dir) {
-    if (dir > 0) return AppTheme.neonGreen.withOpacity(0.20);
-    if (dir < 0) return AppTheme.neonRed.withOpacity(0.20);
-    return const Color(0x0FFFD700);
-  }
-
   @override
   void initState() {
     super.initState();
@@ -476,30 +429,26 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
               String? assetId = slots[i];
               AssetType? asset = assetId != null ? marketMap[assetId] : null;
               bool isDollar = asset?.isDollarBase ?? false;
-              final int dir =
-                  (assetId != null ? _directions[assetId] : null) ?? 0;
 
               return RepaintBoundary(
                 child: GestureDetector(
                   onTap: () => _onSlotTap(i),
                   onLongPress: () => _onLongPress(i),
                   child: Stack(clipBehavior: Clip.none, children: [
-                    // AnimatedContainer: fiyat yönüne göre border ve glow rengi değişir
-                    AnimatedContainer(
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeInOut,
+                    // Sabit altın çerçeve, fiyat yazısı renklenir
+                    Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         decoration: BoxDecoration(
                             color: AppTheme.card,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: _tileBorderColor(dir),
-                                width: dir != 0 ? 1.5 : 1.0),
+                                color: const Color(0x26FFD700),
+                                width: 1.0),
                             boxShadow: [
                               BoxShadow(
-                                  color: _tileGlowColor(dir),
-                                  blurRadius: dir != 0 ? 14 : 8,
-                                  spreadRadius: dir != 0 ? 2 : 1,
+                                  color: const Color(0x0FFFD700),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
                                   offset: const Offset(0, 2)),
                             ]),
                         child: assetId == null
@@ -525,23 +474,23 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                       const SizedBox(height: 2),
                                       Row(children: [
                                         Text(
-                                            asset.sellPrice > 0
-                                                ? (isDollar
-                                                    ? _cryptoFmt.format(
-                                                        asset.usdPrice > 0
-                                                            ? asset.usdPrice
-                                                            : asset.sellPrice)
-                                                    : (asset.category ==
-                                                            'currency'
-                                                        ? _currency2.format(
-                                                            asset.sellPrice)
-                                                        : _currency0.format(
-                                                            asset.sellPrice)))
-                                                : "-",
-                                            style: const TextStyle(
-                                                color: AppTheme.goldMain,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold)),
+                                              asset.sellPrice > 0
+                                                  ? (isDollar
+                                                      ? _cryptoFmt.format(
+                                                          asset.usdPrice > 0
+                                                              ? asset.usdPrice
+                                                              : asset.sellPrice)
+                                                      : (asset.category ==
+                                                              'currency'
+                                                          ? _currency2.format(
+                                                              asset.sellPrice)
+                                                          : _currency0.format(
+                                                              asset.sellPrice)))
+                                                  : "-",
+                                              style: const TextStyle(
+                                                  color: AppTheme.goldMain,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold)),
                                         const SizedBox(width: 4),
                                         if (asset.changeRate > 0)
                                           const Icon(Icons.arrow_drop_up,

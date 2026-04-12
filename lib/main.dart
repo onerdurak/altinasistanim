@@ -14,7 +14,6 @@ import 'sayfalar/detay_sayfalari.dart';
 import 'sayfalar/guvenlik_sayfalari.dart';
 import 'sayfalar/piyasa_sayfalari.dart';
 import 'sayfalar/portfoy_sayfalari.dart';
-import 'sayfalar/destek_sayfasi.dart';
 
 
 void main() async {
@@ -352,17 +351,37 @@ class _MainLayoutState extends State<MainLayout> {
               }),
           const Spacer(),
           const Divider(color: Colors.white10),
-          ListTile(
-              leading:
-                  const Icon(Icons.favorite_rounded, color: AppTheme.goldMain),
-              title: const Text("Geliştiriciye Destek Ol"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (c) => const SupportDeveloperPage()));
-              }),
+          // Yasal linkler
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () => launchUrl(Uri.parse(
+                      'https://onerdurak.github.io/altin-asistanim-privacy/privacy-policy.html#terms')),
+                  child: const Text("Kullanım Koşulları",
+                      style: TextStyle(
+                          color: AppTheme.goldMain,
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppTheme.goldMain)),
+                ),
+                const Text("  •  ",
+                    style: TextStyle(color: Colors.white38, fontSize: 11)),
+                GestureDetector(
+                  onTap: () => launchUrl(Uri.parse(
+                      'https://onerdurak.github.io/altin-asistanim-privacy/privacy-policy.html')),
+                  child: const Text("Gizlilik Politikası",
+                      style: TextStyle(
+                          color: AppTheme.goldMain,
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppTheme.goldMain)),
+                ),
+              ],
+            ),
+          ),
           const Padding(
               padding: EdgeInsets.only(bottom: 25.0, top: 10.0),
               child: Text("powered by Drksistem",

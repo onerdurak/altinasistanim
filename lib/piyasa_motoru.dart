@@ -203,7 +203,16 @@ class PiyasaMotoru {
       }
 
       // Sheets tamamlanmasını bekle (GBP + altın düzeltmeleri)
-      await sheetsFuture;
+      bool sheetsOk = await sheetsFuture;
+
+      // Akıllı bağlantı: Binance VEYA Sheets başarılıysa "canlı" say
+      // (LTE'de Binance bazen bloke oluyor, Sheets genelde çalışıyor)
+      if (binanceOk || sheetsOk) {
+        isLiveConnection = true;
+        _lastFetchTime = DateTime.now();
+      } else {
+        isLiveConnection = false;
+      }
 
       // GBP fallback: Sheets başarısız olursa EUR'dan tahmin et
       _applyGbpFallback();
@@ -246,23 +255,23 @@ class PiyasaMotoru {
       final results = await Future.wait([
         http.get(Uri.parse(
             'https://api.binance.com/api/v3/ticker/24hr?symbol=USDTTRY'))
-            .timeout(const Duration(seconds: 5),
+            .timeout(const Duration(seconds: 12),
                 onTimeout: () => http.Response('', 408)),
         http.get(Uri.parse(
             'https://api.binance.com/api/v3/ticker/24hr?symbol=EURUSDT'))
-            .timeout(const Duration(seconds: 5),
+            .timeout(const Duration(seconds: 12),
                 onTimeout: () => http.Response('', 408)),
         http.get(Uri.parse(
             'https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT'))
-            .timeout(const Duration(seconds: 5),
+            .timeout(const Duration(seconds: 12),
                 onTimeout: () => http.Response('', 408)),
         http.get(Uri.parse(
             'https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT'))
-            .timeout(const Duration(seconds: 5),
+            .timeout(const Duration(seconds: 12),
                 onTimeout: () => http.Response('', 408)),
         http.get(Uri.parse(
             'https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT'))
-            .timeout(const Duration(seconds: 5),
+            .timeout(const Duration(seconds: 12),
                 onTimeout: () => http.Response('', 408)),
         // GBP Binance'tan alınmaz — GBPUSDT platform kurudur, forex kuru değil
         // GBP doğru fiyat Sheets'ten gelir (_fetchSheetsData)
@@ -340,13 +349,13 @@ class PiyasaMotoru {
   }
 
   // ── SHEETS: Altın & Gümüş & GBP fiyatları ──
-  Future<void> _fetchSheetsData() async {
+  Future<bool> _fetchSheetsData() async {
     try {
       final response = await http.get(Uri.parse(
           'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv'))
           .timeout(const Duration(seconds: 15),
               onTimeout: () => http.Response('', 408));
-      if (response.statusCode != 200) return;
+      if (response.statusCode != 200) return false;
 
       Map<String, Map<String, double>> sheetData = {};
       List<String> lines = response.body.split('\n');
@@ -374,7 +383,7 @@ class PiyasaMotoru {
         }
       }
 
-      if (sheetData.isEmpty) return;
+      if (sheetData.isEmpty) return false;
 
       const sheetsIds = [
         'has', 'gram', 'gram22', 'ceyrek', 'yarim', 'tam',
@@ -403,8 +412,10 @@ class PiyasaMotoru {
       _syncCustomAssets();
       saveMarketCache();
       onUpdate();
+      return true;
     } catch (e) {
       // Sheets başarısız olursa sessizce devam et
+      return false;
     }
   }
 

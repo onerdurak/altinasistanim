@@ -14,7 +14,6 @@ import 'sayfalar/detay_sayfalari.dart';
 import 'sayfalar/guvenlik_sayfalari.dart';
 import 'sayfalar/piyasa_sayfalari.dart';
 import 'sayfalar/portfoy_sayfalari.dart';
-import 'sayfalar/destek_sayfasi.dart';
 
 
 void main() async {
@@ -338,17 +337,6 @@ class _MainLayoutState extends State<MainLayout> {
                     scheme: 'mailto',
                     path: 'destek@drksistem.com',
                     query: 'subject=Altın Asistanım Öneri ve Destek'));
-              }),
-          ListTile(
-              leading: const Icon(Icons.workspace_premium,
-                  color: AppTheme.goldMain),
-              title: const Text("Geliştiriciye Destek Ol"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (c) => const SupportDeveloperPage()));
               }),
           ListTile(
               leading:

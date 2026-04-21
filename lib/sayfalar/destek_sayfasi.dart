@@ -290,8 +290,8 @@ class _SupportDeveloperPageState extends State<SupportDeveloperPage> {
             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Icon(paket.icon, color: paket.iconColor, size: 36),
         title: Text(paket.label,
-            style: TextStyle(
-                color: paket.iconColor,
+            style: const TextStyle(
+                color: AppTheme.goldMain,
                 fontWeight: FontWeight.bold,
                 fontSize: 16)),
         subtitle: const Text("Tek Seferlik",

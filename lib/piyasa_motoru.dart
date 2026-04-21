@@ -818,16 +818,16 @@ class PiyasaMotoru {
   void _initializeMarketSkeleton() {
     market = [
       AssetType(
-          "gram", ["GRA", "GRAMALTIN"], "G", "24 Ayar Gram", 0, 0, "gold",
+          "gram", ["GRA", "GRAMALTIN"], "G", "Gram Altın 24", 0, 0, "gold",
           sellMarkup: 1.0821, buyMarkup: 1.0333),
-      AssetType("gram22", ["YIA", "22AYARBILEZIK"], "22K", "22 Ayar Gram", 0, 0,
+      AssetType("gram22", ["YIA", "22AYARBILEZIK"], "22K", "Gram Altın 22", 0, 0,
           "gold",
           manualInput: false, sellMarkup: 1.1134, buyMarkup: 1.0314),
       AssetType("ceyrek", ["CEYREKALTIN"], "Ç", "Çeyrek Altın", 0, 0, "gold",
           sellMarkup: 1.1040, buyMarkup: 1.0547),
       AssetType("yarim", ["YARIMALTIN"], "Y", "Yarım Altın", 0, 0, "gold",
           sellMarkup: 1.1006, buyMarkup: 1.0547),
-      AssetType("tam", ["TAMALTIN"], "T", "Tam Altın", 0, 0, "gold",
+      AssetType("tam", ["TAMALTIN"], "T", "Cumhuriyet Altını", 0, 0, "gold",
           sellMarkup: 1.0964, buyMarkup: 1.0514),
       AssetType("ata", ["ATAALTIN"], "A", "Ata Altın", 0, 0, "gold",
           sellMarkup: 1.0934, buyMarkup: 1.0495),
@@ -835,7 +835,7 @@ class PiyasaMotoru {
           manualInput: true,
           sellMarkup: 1.000,
           buyMarkup: 1.000),
-      AssetType("yarim_gram22", [], "0.5", "0.5 Gram (22K)", 0, 0, "gold",
+      AssetType("yarim_gram22", [], "0.5", "Yarım Gram", 0, 0, "gold",
           manualInput: false, sellMarkup: 1.1134, buyMarkup: 1.0314),
       AssetType("ons", ["ONS"], "ONS", "Altın / ONS", 0, 0, "ons",
           sellMarkup: 1.000, buyMarkup: 1.000, isDollarBase: true),
@@ -860,7 +860,7 @@ class PiyasaMotoru {
       AssetType("hamit", ["HAMITALTIN"], "H", "Hamit Altın", 0, 0, "gold",
           sellMarkup: 1.0934, buyMarkup: 1.0495),
       AssetType(
-          "bilezik14", ["14AYARALTIN"], "14K", "14 Ayar Gram", 0, 0, "gold",
+          "bilezik14", ["14AYARALTIN"], "14K", "Bilezik Gram", 0, 0, "gold",
           manualInput: false, sellMarkup: 1.3242, buyMarkup: 0.9711),
       AssetType("gbp", ["GBP"], "£", "Sterlin", 0, 0, "currency",
           manualInput: true, sellMarkup: 1.004, buyMarkup: 0.996),

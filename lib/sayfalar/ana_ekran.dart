@@ -412,6 +412,35 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
   @override
   Widget build(BuildContext context) {
     final marketMap = {for (var a in widget.market) a.id: a};
+    final screenWidth = MediaQuery.of(context).size.width;
+    final textScale = MediaQuery.of(context).textScaler.scale(1.0);
+
+    // Ekran genişliğine göre sütun sayısı (tablette daha çok sütun)
+    int crossAxisCount;
+    if (screenWidth >= 1100) {
+      crossAxisCount = 4;
+    } else if (screenWidth >= 700) {
+      crossAxisCount = 3;
+    } else {
+      crossAxisCount = 2;
+    }
+
+    // Kutu genişliği: (ekran - yatay padding - sütun boşlukları) / sütun sayısı
+    // DashboardPage'in dış paddingi 20*2=40, GridView crossAxisSpacing 10
+    final availableWidth = screenWidth - 40;
+    final itemWidth =
+        (availableWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
+    // Kutu yüksekliği: içerikte yatay ikon+2 satır yazı var, yazı büyüdükçe
+    // yüksek tutmak için textScale ile genişliyor
+    final itemHeight = (58 * textScale).clamp(58, 92).toDouble();
+    final aspectRatio = itemWidth / itemHeight;
+
+    // Kutu genişliğine göre ikon ve yazıyı da büyüt (sığmazsa küçült)
+    final coinSize = (itemWidth * 0.20).clamp(28.0, 44.0);
+    final nameFontSize = (itemWidth * 0.065).clamp(10.0, 14.0);
+    final priceFontSize = (itemWidth * 0.08).clamp(12.0, 17.0);
+    final arrowSize = (itemWidth * 0.11).clamp(16.0, 22.0);
+
     return GestureDetector(
         onTap: () {
           if (isEditing) setState(() => isEditing = false);
@@ -420,9 +449,9 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: 16,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 2.2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                childAspectRatio: aspectRatio,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10),
             itemBuilder: (c, i) {
@@ -456,7 +485,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                 child: Icon(Icons.add,
                                     color: Colors.grey, size: 30))
                             : Row(children: [
-                                AssetCoin(type: asset!, size: 32),
+                                AssetCoin(type: asset!, size: coinSize),
                                 const SizedBox(width: 8),
                                 Expanded(
                                     child: Column(
@@ -466,39 +495,48 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                             CrossAxisAlignment.start,
                                         children: [
                                       Text(asset.name,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: 11,
+                                              fontSize: nameFontSize,
                                               fontWeight: FontWeight.bold),
+                                          maxLines: 1,
                                           overflow: TextOverflow.ellipsis),
                                       const SizedBox(height: 2),
                                       Row(children: [
-                                        Text(
-                                              asset.sellPrice > 0
-                                                  ? (isDollar
-                                                      ? _cryptoFmt.format(
-                                                          asset.usdPrice > 0
-                                                              ? asset.usdPrice
-                                                              : asset.sellPrice)
-                                                      : (asset.category ==
-                                                              'currency'
-                                                          ? _currency2.format(
-                                                              asset.sellPrice)
-                                                          : _currency0.format(
-                                                              asset.sellPrice)))
-                                                  : "-",
-                                              style: const TextStyle(
-                                                  color: AppTheme.goldMain,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.bold)),
+                                        Flexible(
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                                asset.sellPrice > 0
+                                                    ? (isDollar
+                                                        ? _cryptoFmt.format(
+                                                            asset.usdPrice > 0
+                                                                ? asset.usdPrice
+                                                                : asset.sellPrice)
+                                                        : (asset.category ==
+                                                                'currency'
+                                                            ? _currency2.format(
+                                                                asset.sellPrice)
+                                                            : _currency0.format(
+                                                                asset.sellPrice)))
+                                                    : "-",
+                                                style: TextStyle(
+                                                    color: AppTheme.goldMain,
+                                                    fontSize: priceFontSize,
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                          ),
+                                        ),
                                         const SizedBox(width: 4),
                                         if (asset.changeRate > 0)
-                                          const Icon(Icons.arrow_drop_up,
+                                          Icon(Icons.arrow_drop_up,
                                               color: AppTheme.neonGreen,
-                                              size: 18)
+                                              size: arrowSize)
                                         else if (asset.changeRate < 0)
-                                          const Icon(Icons.arrow_drop_down,
-                                              color: AppTheme.neonRed, size: 18)
+                                          Icon(Icons.arrow_drop_down,
+                                              color: AppTheme.neonRed,
+                                              size: arrowSize)
                                       ])
                                     ]))
                               ])),

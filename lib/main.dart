@@ -20,12 +20,13 @@ import 'sayfalar/destek_sayfasi.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Android 15 edge-to-edge uyumu — deprecated API uyarısını önler
+  // Android 15 edge-to-edge uyumu — deprecated API çağrısı yok
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
     systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarContrastEnforced: false,
   ));
 
   await initializeDateFormatting('tr_TR', null);
@@ -53,6 +54,18 @@ class GoldGuardApp extends StatelessWidget {
                   color: AppTheme.goldMain,
                   fontSize: 22,
                   fontWeight: FontWeight.w900))),
+      // Sistem yazı tipi büyütülse bile UI bozulmasın — 0.85 - 1.15 arası kısıtla
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        final clamped = mq.textScaler.clamp(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.15,
+        );
+        return MediaQuery(
+          data: mq.copyWith(textScaler: clamped),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const StartupCheck(),
     );
   }

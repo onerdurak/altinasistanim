@@ -827,7 +827,7 @@ class PiyasaMotoru {
           sellMarkup: 1.1040, buyMarkup: 1.0547),
       AssetType("yarim", ["YARIMALTIN"], "Y", "Yarım Altın", 0, 0, "gold",
           sellMarkup: 1.1006, buyMarkup: 1.0547),
-      AssetType("tam", ["TAMALTIN"], "T", "Cumhuriyet Altını", 0, 0, "gold",
+      AssetType("tam", ["TAMALTIN"], "T", "Tam Altın", 0, 0, "gold",
           sellMarkup: 1.0964, buyMarkup: 1.0514),
       AssetType("ata", ["ATAALTIN"], "A", "Ata Altın", 0, 0, "gold",
           sellMarkup: 1.0934, buyMarkup: 1.0495),

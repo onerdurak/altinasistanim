@@ -818,9 +818,9 @@ class PiyasaMotoru {
   void _initializeMarketSkeleton() {
     market = [
       AssetType(
-          "gram", ["GRA", "GRAMALTIN"], "G", "Gram Altın 24", 0, 0, "gold",
+          "gram", ["GRA", "GRAMALTIN"], "G", "Gram Altın (24 Ayar)", 0, 0, "gold",
           sellMarkup: 1.0821, buyMarkup: 1.0333),
-      AssetType("gram22", ["YIA", "22AYARBILEZIK"], "22K", "Gram Altın 22", 0, 0,
+      AssetType("gram22", ["YIA", "22AYARBILEZIK"], "22K", "Gram Altın (22 Ayar)", 0, 0,
           "gold",
           manualInput: false, sellMarkup: 1.1134, buyMarkup: 1.0314),
       AssetType("ceyrek", ["CEYREKALTIN"], "Ç", "Çeyrek Altın", 0, 0, "gold",

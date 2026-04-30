@@ -801,20 +801,29 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                               border: Border.all(
                                   color: const Color(0x0AFFFFFF))),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              GestureDetector(
-                                onTap: () => widget.onAssetTap(asset),
-                                child: Row(children: [
-                                  AssetCoin(type: asset),
-                                  const SizedBox(width: 15),
-                                  Column(
+                              AssetCoin(type: asset),
+                              const SizedBox(width: 12),
+                              // Metin alani — sabit genisilikte (Expanded)
+                              // Uzun isim ellipsis ile kesilir, butonlar sabit kalir
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => widget.onAssetTap(asset),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(asset.name,
                                             style: const TextStyle(
                                                 color: Colors.white,
-                                                fontWeight: FontWeight.bold)),
+                                                fontWeight: FontWeight.bold,
+                                                height: 1.15),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            softWrap: false),
                                         const SizedBox(height: 3),
                                         Text(
                                             _currency.format(qty * itemPrice),
@@ -825,11 +834,15 @@ class _PortfolioDetailState extends State<PortfolioDetail> {
                                                         ? const Color(0xFF66BB6A)
                                                         : const Color(0xFFEF5350)),
                                                 fontSize: 13,
-                                                fontWeight: FontWeight.w500)),
-                                      ])
-                                ]),
+                                                fontWeight: FontWeight.w500,
+                                                height: 1.0),
+                                            maxLines: 1,
+                                            overflow:
+                                                TextOverflow.ellipsis),
+                                      ]),
+                                ),
                               ),
-                              const Spacer(),
+                              const SizedBox(width: 8),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [

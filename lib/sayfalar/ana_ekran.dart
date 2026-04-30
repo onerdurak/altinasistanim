@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -45,18 +46,20 @@ class _DashboardPageState extends State<DashboardPage> {
   static final _currency =
       NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
   bool _isObscured = false;
+  bool _isNetCollapsed = false;
   bool _isLoadingPrefs = true;
 
   @override
   void initState() {
     super.initState();
-    _loadObscuredState();
+    _loadPrefs();
   }
 
-  Future<void> _loadObscuredState() async {
+  Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _isObscured = prefs.getBool('is_obscured') ?? false;
+      _isNetCollapsed = prefs.getBool('net_collapsed') ?? false;
       _isLoadingPrefs = false;
     });
   }
@@ -65,6 +68,13 @@ class _DashboardPageState extends State<DashboardPage> {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _isObscured = !_isObscured);
     await prefs.setBool('is_obscured', _isObscured);
+  }
+
+  Future<void> _toggleNetCollapsed() async {
+    HapticFeedback.lightImpact();
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _isNetCollapsed = !_isNetCollapsed);
+    await prefs.setBool('net_collapsed', _isNetCollapsed);
   }
 
   @override
@@ -104,56 +114,82 @@ class _DashboardPageState extends State<DashboardPage> {
                       widget.onStatTap(
                           "NET FİNANSAL DURUM", "net", Colors.white);
                   },
-                  child: Container(
+                  child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeOutCubic,
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: _isNetCollapsed ? 10 : 12),
                       decoration: BoxDecoration(
                           gradient: const LinearGradient(
                               colors: [Color(0xFF2E2E2E), Color(0xFF111111)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight),
-                          borderRadius: BorderRadius.circular(25),
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: Colors.white12),
                           boxShadow: const [
                             BoxShadow(
                                 color: Color(0x80000000),
-                                blurRadius: 15,
-                                offset: Offset(0, 10))
+                                blurRadius: 12,
+                                offset: Offset(0, 8))
                           ]),
                       child: widget.isAppLocked
                           ? GestureDetector(
                               onTap: widget.onToggleLock,
                               behavior: HitTestBehavior.opaque,
                               child: const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 40),
+                                  padding: EdgeInsets.symmetric(vertical: 32),
                                   child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
                                         Icon(Icons.lock,
-                                            color: AppTheme.goldMain, size: 36),
-                                        SizedBox(height: 10),
+                                            color: AppTheme.goldMain, size: 32),
+                                        SizedBox(height: 8),
                                         Text("KİLİTLİ",
                                             style: TextStyle(
                                                 color: AppTheme.goldMain,
-                                                fontSize: 20,
+                                                fontSize: 18,
                                                 fontWeight: FontWeight.bold,
                                                 letterSpacing: 2)),
-                                        SizedBox(height: 5),
+                                        SizedBox(height: 4),
                                         Text("Açmak için dokunun",
                                             style: TextStyle(
                                                 color: Colors.white54,
-                                                fontSize: 12))
+                                                fontSize: 11))
                                       ])))
                           : Column(children: [
+                              // Başlık satırı — toggle + göz + tutar
                               Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Text("NET FİNANSAL DURUM",
-                                        style: TextStyle(
-                                            color: Color(0xFF9E9E9E),
-                                            letterSpacing: 1.2,
-                                            fontSize: 12)),
+                                    GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: _toggleNetCollapsed,
+                                        child: Padding(
+                                            padding:
+                                                const EdgeInsets.all(2),
+                                            child: AnimatedRotation(
+                                                turns: _isNetCollapsed
+                                                    ? 0
+                                                    : 0.5,
+                                                duration: const Duration(
+                                                    milliseconds: 220),
+                                                child: const Icon(
+                                                    Icons
+                                                        .keyboard_arrow_down_rounded,
+                                                    color: Colors.grey,
+                                                    size: 18)))),
+                                    const SizedBox(width: 4),
+                                    GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: _toggleNetCollapsed,
+                                        child: const Text("NET FİNANSAL DURUM",
+                                            style: TextStyle(
+                                                color: Color(0xFF9E9E9E),
+                                                letterSpacing: 1.2,
+                                                fontSize: 11))),
                                     const SizedBox(width: 6),
                                     IconButton(
                                         padding: EdgeInsets.zero,
@@ -163,51 +199,98 @@ class _DashboardPageState extends State<DashboardPage> {
                                                 ? Icons.visibility_off
                                                 : Icons.visibility,
                                             color: Colors.grey,
-                                            size: 18),
+                                            size: 16),
                                         onPressed: _toggleObscure),
                                   ]),
-                              const SizedBox(height: 4),
-                              Text(
-                                  _isObscured
+                              const SizedBox(height: 2),
+                              // Tutar — collapsed'de küçük, açıkken biraz büyük
+                              AnimatedDefaultTextStyle(
+                                  duration:
+                                      const Duration(milliseconds: 240),
+                                  style: TextStyle(
+                                      color: const Color(0xFFEDEDED),
+                                      fontSize: _isNetCollapsed ? 22 : 28,
+                                      fontWeight: FontWeight.w900),
+                                  child: Text(_isObscured
                                       ? "₺ ***"
-                                      : _currency.format(widget.netWorth),
-                                  style: const TextStyle(
-                                      color: Color(0xFFEDEDED),
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w900)),
-                              const Divider(color: Colors.white10, height: 24),
-                              Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () => widget.onStatTap(
-                                            "KASA GEÇMİŞİ",
-                                            "wallet",
-                                            AppTheme.goldMain),
-                                        child: MiniStat("Kasa", widget.wallet,
-                                            AppTheme.goldMain,
-                                            isObscured: _isObscured)),
-                                    GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () => widget.onStatTap(
-                                            "ALACAK GEÇMİŞİ",
-                                            "credit",
-                                            AppTheme.neonGreen),
-                                        child: MiniStat("Alacak", widget.credit,
-                                            AppTheme.neonGreen,
-                                            isObscured: _isObscured)),
-                                    GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () => widget.onStatTap(
-                                            "BORÇ GEÇMİŞİ",
-                                            "debt",
-                                            AppTheme.neonRed),
-                                        child: MiniStat("Borç", widget.debt,
-                                            AppTheme.neonRed,
-                                            isObscured: _isObscured))
-                                  ])
+                                      : _currency.format(widget.netWorth))),
+                              // Detay (Kasa/Alacak/Borç) — collapse animasyonu
+                              AnimatedSize(
+                                  duration:
+                                      const Duration(milliseconds: 280),
+                                  curve: Curves.easeOutCubic,
+                                  alignment: Alignment.topCenter,
+                                  child: AnimatedOpacity(
+                                      duration: const Duration(
+                                          milliseconds: 220),
+                                      opacity:
+                                          _isNetCollapsed ? 0.0 : 1.0,
+                                      child: _isNetCollapsed
+                                          ? const SizedBox(
+                                              width: double.infinity,
+                                              height: 0)
+                                          : Column(children: [
+                                              const Divider(
+                                                  color: Colors.white10,
+                                                  height: 20),
+                                              Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceEvenly,
+                                                  children: [
+                                                    GestureDetector(
+                                                        behavior:
+                                                            HitTestBehavior
+                                                                .opaque,
+                                                        onTap: () => widget
+                                                            .onStatTap(
+                                                                "KASA GEÇMİŞİ",
+                                                                "wallet",
+                                                                AppTheme
+                                                                    .goldMain),
+                                                        child: MiniStat(
+                                                            "Kasa",
+                                                            widget.wallet,
+                                                            AppTheme
+                                                                .goldMain,
+                                                            isObscured:
+                                                                _isObscured)),
+                                                    GestureDetector(
+                                                        behavior:
+                                                            HitTestBehavior
+                                                                .opaque,
+                                                        onTap: () => widget
+                                                            .onStatTap(
+                                                                "ALACAK GEÇMİŞİ",
+                                                                "credit",
+                                                                AppTheme
+                                                                    .neonGreen),
+                                                        child: MiniStat(
+                                                            "Alacak",
+                                                            widget.credit,
+                                                            AppTheme
+                                                                .neonGreen,
+                                                            isObscured:
+                                                                _isObscured)),
+                                                    GestureDetector(
+                                                        behavior:
+                                                            HitTestBehavior
+                                                                .opaque,
+                                                        onTap: () => widget
+                                                            .onStatTap(
+                                                                "BORÇ GEÇMİŞİ",
+                                                                "debt",
+                                                                AppTheme
+                                                                    .neonRed),
+                                                        child: MiniStat(
+                                                            "Borç",
+                                                            widget.debt,
+                                                            AppTheme
+                                                                .neonRed,
+                                                            isObscured:
+                                                                _isObscured))
+                                                  ])
+                                            ])))
                             ]))),
               Positioned(
                   top: 10,
@@ -412,8 +495,10 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
   @override
   Widget build(BuildContext context) {
     final marketMap = {for (var a in widget.market) a.id: a};
-    final screenWidth = MediaQuery.of(context).size.width;
-    final textScale = MediaQuery.of(context).textScaler.scale(1.0);
+    final mq = MediaQuery.of(context);
+    final screenWidth = mq.size.width;
+    final screenShortest = mq.size.shortestSide;
+    final textScale = mq.textScaler.scale(1.0);
 
     // Ekran genişliğine göre sütun sayısı (tablette daha çok sütun)
     int crossAxisCount;
@@ -425,21 +510,24 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
       crossAxisCount = 2;
     }
 
-    // Kutu genişliği: (ekran - yatay padding - sütun boşlukları) / sütun sayısı
-    // DashboardPage'in dış paddingi 20*2=40, GridView crossAxisSpacing 10
+    // Kutu genişliği: (ekran - dış padding - sütun boşlukları) / sütun
     final availableWidth = screenWidth - 40;
     final itemWidth =
         (availableWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
-    // Kutu yüksekliği: içerikte yatay ikon+2 satır yazı var, yazı büyüdükçe
-    // yüksek tutmak için textScale ile genişliyor
-    final itemHeight = (58 * textScale).clamp(58, 92).toDouble();
+
+    // Kutu yüksekliği — eskisinden ~%30 daha büyük + textScale ile genişler
+    // Telefon küçükse daha kompakt, tablet/büyük ekranda daha ferah
+    final baseHeight = screenShortest >= 600 ? 96.0 : 78.0;
+    final itemHeight = (baseHeight * textScale).clamp(baseHeight, 130.0);
     final aspectRatio = itemWidth / itemHeight;
 
-    // Kutu genişliğine göre ikon ve yazıyı da büyüt (sığmazsa küçült)
-    final coinSize = (itemWidth * 0.20).clamp(28.0, 44.0);
-    final nameFontSize = (itemWidth * 0.065).clamp(10.0, 14.0);
-    final priceFontSize = (itemWidth * 0.08).clamp(12.0, 17.0);
-    final arrowSize = (itemWidth * 0.11).clamp(16.0, 22.0);
+    // Kutu boyutuna göre ikon + yazı (genişlik ve yükseklik birlikte etkiler)
+    final dim = math.min(itemWidth, itemHeight * 2.4);
+    final coinSize = (dim * 0.22).clamp(34.0, 56.0);
+    final nameFontSize = (dim * 0.075).clamp(12.0, 18.0);
+    final priceFontSize = (dim * 0.095).clamp(14.0, 22.0);
+    final arrowSize = (dim * 0.13).clamp(18.0, 28.0);
+    final addIconSize = (dim * 0.18).clamp(28.0, 44.0);
 
     return GestureDetector(
         onTap: () {
@@ -464,12 +552,13 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                   onTap: () => _onSlotTap(i),
                   onLongPress: () => _onLongPress(i),
                   child: Stack(clipBehavior: Clip.none, children: [
-                    // Sabit altın çerçeve, fiyat yazısı renklenir
+                    // Sabit altın çerçeve, içerik tam ortada
                     Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                             color: AppTheme.card,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                                 color: const Color(0x26FFD700),
                                 width: 1.0),
@@ -481,65 +570,78 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                   offset: const Offset(0, 2)),
                             ]),
                         child: assetId == null
-                            ? const Center(
+                            ? Center(
                                 child: Icon(Icons.add,
-                                    color: Colors.grey, size: 30))
-                            : Row(children: [
-                                AssetCoin(type: asset!, size: coinSize),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                    child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                      Text(asset.name,
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: nameFontSize,
-                                              fontWeight: FontWeight.bold),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis),
-                                      const SizedBox(height: 2),
-                                      Row(children: [
-                                        Flexible(
-                                          child: FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                                asset.sellPrice > 0
-                                                    ? (isDollar
-                                                        ? _cryptoFmt.format(
-                                                            asset.usdPrice > 0
-                                                                ? asset.usdPrice
-                                                                : asset.sellPrice)
-                                                        : (asset.category ==
-                                                                'currency'
-                                                            ? _currency2.format(
-                                                                asset.sellPrice)
-                                                            : _currency0.format(
-                                                                asset.sellPrice)))
-                                                    : "-",
-                                                style: TextStyle(
-                                                    color: AppTheme.goldMain,
-                                                    fontSize: priceFontSize,
-                                                    fontWeight:
-                                                        FontWeight.bold)),
-                                          ),
+                                    color: Colors.grey, size: addIconSize))
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  AssetCoin(type: asset!, size: coinSize),
+                                  const SizedBox(width: 10),
+                                  Flexible(
+                                      child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.center,
+                                          child: Text(asset.name,
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: nameFontSize,
+                                                  fontWeight: FontWeight.bold),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center),
                                         ),
-                                        const SizedBox(width: 4),
-                                        if (asset.changeRate > 0)
-                                          Icon(Icons.arrow_drop_up,
-                                              color: AppTheme.neonGreen,
-                                              size: arrowSize)
-                                        else if (asset.changeRate < 0)
-                                          Icon(Icons.arrow_drop_down,
-                                              color: AppTheme.neonRed,
-                                              size: arrowSize)
-                                      ])
-                                    ]))
-                              ])),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Flexible(
+                                                child: FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  alignment: Alignment.center,
+                                                  child: Text(
+                                                      asset.sellPrice > 0
+                                                          ? (isDollar
+                                                              ? _cryptoFmt.format(
+                                                                  asset.usdPrice > 0
+                                                                      ? asset.usdPrice
+                                                                      : asset.sellPrice)
+                                                              : (asset.category ==
+                                                                      'currency'
+                                                                  ? _currency2.format(
+                                                                      asset.sellPrice)
+                                                                  : _currency0.format(
+                                                                      asset.sellPrice)))
+                                                          : "-",
+                                                      style: TextStyle(
+                                                          color:
+                                                              AppTheme.goldMain,
+                                                          fontSize: priceFontSize,
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                      textAlign:
+                                                          TextAlign.center),
+                                                ),
+                                              ),
+                                              if (asset.changeRate > 0)
+                                                Icon(Icons.arrow_drop_up,
+                                                    color: AppTheme.neonGreen,
+                                                    size: arrowSize)
+                                              else if (asset.changeRate < 0)
+                                                Icon(Icons.arrow_drop_down,
+                                                    color: AppTheme.neonRed,
+                                                    size: arrowSize)
+                                            ])
+                                      ]))
+                                ])),
                     if (isEditing && assetId != null)
                       Positioned(
                           top: -5,

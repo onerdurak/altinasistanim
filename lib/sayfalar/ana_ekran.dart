@@ -573,41 +573,75 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                             ? Center(
                                 child: Icon(Icons.add,
                                     color: Colors.grey, size: addIconSize))
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  AssetCoin(type: asset!, size: coinSize),
-                                  const SizedBox(width: 10),
-                                  Flexible(
-                                      child: Column(
+                            : LayoutBuilder(builder: (ctx, cs) {
+                                // Coin + boşluk + ayırıcı + boşluk + metin alanı
+                                final dividerW = 1.5;
+                                final gapW = 10.0;
+                                final reservedW =
+                                    coinSize + gapW + dividerW + gapW;
+                                final textMaxW = (cs.maxWidth - reservedW)
+                                    .clamp(60.0, cs.maxWidth);
+                                return Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      AssetCoin(type: asset!, size: coinSize),
+                                      SizedBox(width: gapW),
+                                      // "I" tarzı dikey ayırıcı — altın gradient
+                                      Container(
+                                        width: dividerW,
+                                        height: coinSize * 0.75,
+                                        decoration: const BoxDecoration(
+                                            gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                              Color(0x00FFD700),
+                                              Color(0x99FFD700),
+                                              Color(0x00FFD700),
+                                            ])),
+                                      ),
+                                      SizedBox(width: gapW),
+                                      // Metin bloğu — name + price stacked, ortalı
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                            maxWidth: textMaxW),
+                                        child: Column(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           crossAxisAlignment:
                                               CrossAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                        FittedBox(
-                                          fit: BoxFit.scaleDown,
-                                          alignment: Alignment.center,
-                                          child: Text(asset.name,
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: nameFontSize,
-                                                  fontWeight: FontWeight.bold),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              textAlign: TextAlign.center),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Flexible(
-                                                child: FittedBox(
-                                                  fit: BoxFit.scaleDown,
-                                                  alignment: Alignment.center,
-                                                  child: Text(
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.center,
+                                              child: Text(asset.name,
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: nameFontSize,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  textAlign:
+                                                      TextAlign.center),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.center,
+                                              child: Row(
+                                                mainAxisSize:
+                                                    MainAxisSize.min,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment
+                                                        .center,
+                                                children: [
+                                                  Text(
                                                       asset.sellPrice > 0
                                                           ? (isDollar
                                                               ? _cryptoFmt.format(
@@ -622,26 +656,33 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                                                       asset.sellPrice)))
                                                           : "-",
                                                       style: TextStyle(
-                                                          color:
-                                                              AppTheme.goldMain,
-                                                          fontSize: priceFontSize,
+                                                          color: AppTheme
+                                                              .goldMain,
+                                                          fontSize:
+                                                              priceFontSize,
                                                           fontWeight:
                                                               FontWeight.bold),
                                                       textAlign:
                                                           TextAlign.center),
-                                                ),
+                                                  if (asset.changeRate > 0)
+                                                    Icon(Icons.arrow_drop_up,
+                                                        color:
+                                                            AppTheme.neonGreen,
+                                                        size: arrowSize)
+                                                  else if (asset.changeRate < 0)
+                                                    Icon(Icons.arrow_drop_down,
+                                                        color: AppTheme.neonRed,
+                                                        size: arrowSize)
+                                                ],
                                               ),
-                                              if (asset.changeRate > 0)
-                                                Icon(Icons.arrow_drop_up,
-                                                    color: AppTheme.neonGreen,
-                                                    size: arrowSize)
-                                              else if (asset.changeRate < 0)
-                                                Icon(Icons.arrow_drop_down,
-                                                    color: AppTheme.neonRed,
-                                                    size: arrowSize)
-                                            ])
-                                      ]))
-                                ])),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              })),
                     if (isEditing && assetId != null)
                       Positioned(
                           top: -5,

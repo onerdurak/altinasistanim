@@ -555,7 +555,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                     // Sabit altın çerçeve, içerik tam ortada
                     Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                             color: AppTheme.card,
                             borderRadius: BorderRadius.circular(14),
@@ -573,116 +573,100 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                             ? Center(
                                 child: Icon(Icons.add,
                                     color: Colors.grey, size: addIconSize))
-                            : LayoutBuilder(builder: (ctx, cs) {
-                                // Coin + boşluk + ayırıcı + boşluk + metin alanı
-                                final dividerW = 1.5;
-                                final gapW = 10.0;
-                                final reservedW =
-                                    coinSize + gapW + dividerW + gapW;
-                                final textMaxW = (cs.maxWidth - reservedW)
-                                    .clamp(60.0, cs.maxWidth);
-                                return Center(
+                            // Tüm icerigi tek bir FittedBox ile sigdir — boyle:
+                            // - Icerik dogal boyutunda kalir, kutuya sigarsa hicbir scaling olmaz
+                            // - Sigmazsa orantili olarak kuculur (coin/yazi birlikte)
+                            // - Center ile yatay+dikey tam ortaya yerlesir
+                            : Center(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.center,
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     crossAxisAlignment:
                                         CrossAxisAlignment.center,
                                     children: [
-                                      AssetCoin(type: asset!, size: coinSize),
-                                      SizedBox(width: gapW),
-                                      // "I" tarzı dikey ayırıcı — altın gradient
+                                      AssetCoin(
+                                          type: asset!, size: coinSize),
+                                      const SizedBox(width: 10),
+                                      // "I" altin gradient ayirici
                                       Container(
-                                        width: dividerW,
-                                        height: coinSize * 0.75,
+                                        width: 1.5,
+                                        height: coinSize * 0.78,
                                         decoration: const BoxDecoration(
                                             gradient: LinearGradient(
                                                 begin: Alignment.topCenter,
                                                 end: Alignment.bottomCenter,
                                                 colors: [
                                               Color(0x00FFD700),
-                                              Color(0x99FFD700),
+                                              Color(0xCCFFD700),
                                               Color(0x00FFD700),
                                             ])),
                                       ),
-                                      SizedBox(width: gapW),
-                                      // Metin bloğu — name + price stacked, ortalı
-                                      ConstrainedBox(
-                                        constraints: BoxConstraints(
-                                            maxWidth: textMaxW),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              alignment: Alignment.center,
-                                              child: Text(asset.name,
+                                      const SizedBox(width: 10),
+                                      // Isim + fiyat ust uste, her ikisi de ortali
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(asset.name,
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: nameFontSize,
+                                                  fontWeight: FontWeight.bold,
+                                                  height: 1.1),
+                                              maxLines: 1,
+                                              softWrap: false,
+                                              textAlign: TextAlign.center),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                  asset.sellPrice > 0
+                                                      ? (isDollar
+                                                          ? _cryptoFmt.format(
+                                                              asset.usdPrice > 0
+                                                                  ? asset.usdPrice
+                                                                  : asset.sellPrice)
+                                                          : (asset.category ==
+                                                                  'currency'
+                                                              ? _currency2.format(
+                                                                  asset.sellPrice)
+                                                              : _currency0.format(
+                                                                  asset.sellPrice)))
+                                                      : "-",
                                                   style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: nameFontSize,
+                                                      color:
+                                                          AppTheme.goldMain,
+                                                      fontSize: priceFontSize,
                                                       fontWeight:
-                                                          FontWeight.bold),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                                          FontWeight.bold,
+                                                      height: 1.0),
                                                   textAlign:
                                                       TextAlign.center),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              alignment: Alignment.center,
-                                              child: Row(
-                                                mainAxisSize:
-                                                    MainAxisSize.min,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment
-                                                        .center,
-                                                children: [
-                                                  Text(
-                                                      asset.sellPrice > 0
-                                                          ? (isDollar
-                                                              ? _cryptoFmt.format(
-                                                                  asset.usdPrice > 0
-                                                                      ? asset.usdPrice
-                                                                      : asset.sellPrice)
-                                                              : (asset.category ==
-                                                                      'currency'
-                                                                  ? _currency2.format(
-                                                                      asset.sellPrice)
-                                                                  : _currency0.format(
-                                                                      asset.sellPrice)))
-                                                          : "-",
-                                                      style: TextStyle(
-                                                          color: AppTheme
-                                                              .goldMain,
-                                                          fontSize:
-                                                              priceFontSize,
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                      textAlign:
-                                                          TextAlign.center),
-                                                  if (asset.changeRate > 0)
-                                                    Icon(Icons.arrow_drop_up,
-                                                        color:
-                                                            AppTheme.neonGreen,
-                                                        size: arrowSize)
-                                                  else if (asset.changeRate < 0)
-                                                    Icon(Icons.arrow_drop_down,
-                                                        color: AppTheme.neonRed,
-                                                        size: arrowSize)
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                              if (asset.changeRate > 0)
+                                                Icon(Icons.arrow_drop_up,
+                                                    color:
+                                                        AppTheme.neonGreen,
+                                                    size: arrowSize)
+                                              else if (asset.changeRate < 0)
+                                                Icon(Icons.arrow_drop_down,
+                                                    color: AppTheme.neonRed,
+                                                    size: arrowSize)
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                );
-                              })),
+                                ),
+                              )),
                     if (isEditing && assetId != null)
                       Positioned(
                           top: -5,

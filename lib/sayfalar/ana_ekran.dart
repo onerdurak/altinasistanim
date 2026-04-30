@@ -573,46 +573,45 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                             ? Center(
                                 child: Icon(Icons.add,
                                     color: Colors.grey, size: addIconSize))
-                            // Tüm icerigi tek bir FittedBox ile sigdir — boyle:
-                            // - Icerik dogal boyutunda kalir, kutuya sigarsa hicbir scaling olmaz
-                            // - Sigmazsa orantili olarak kuculur (coin/yazi birlikte)
-                            // - Center ile yatay+dikey tam ortaya yerlesir
-                            : Center(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      AssetCoin(
-                                          type: asset!, size: coinSize),
-                                      const SizedBox(width: 10),
-                                      // "I" altin gradient ayirici
-                                      Container(
-                                        width: 1.5,
-                                        height: coinSize * 0.78,
-                                        decoration: const BoxDecoration(
-                                            gradient: LinearGradient(
-                                                begin: Alignment.topCenter,
-                                                end: Alignment.bottomCenter,
-                                                colors: [
-                                              Color(0x00FFD700),
-                                              Color(0xCCFFD700),
-                                              Color(0x00FFD700),
-                                            ])),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      // Isim + fiyat ust uste, her ikisi de ortali
-                                      Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(asset.name,
+                            // Layout:
+                            // - Coin + "I" ayirici SOLDA (sabit konum)
+                            // - Expanded ile metin alani kalan alanin ortasinda
+                            // - Isim ve fiyat AYRI FittedBox icinde -> uzun isim
+                            //   sadece kendisi kuculur, fiyat tam boyutta kalir
+                            : Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  AssetCoin(type: asset!, size: coinSize),
+                                  const SizedBox(width: 10),
+                                  // "I" altin gradient dikey ayirici
+                                  Container(
+                                    width: 1.5,
+                                    height: coinSize * 0.78,
+                                    decoration: const BoxDecoration(
+                                        gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                          Color(0x00FFD700),
+                                          Color(0xCCFFD700),
+                                          Color(0x00FFD700),
+                                        ])),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  // Metin alani — kalan alanin tam ortasinda
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // 1) Isim — uzunsa SADECE bu kuculur
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.center,
+                                          child: Text(asset.name,
                                               style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: nameFontSize,
@@ -621,8 +620,14 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                               maxLines: 1,
                                               softWrap: false,
                                               textAlign: TextAlign.center),
-                                          const SizedBox(height: 4),
-                                          Row(
+                                        ),
+                                        const SizedBox(height: 4),
+                                        // 2) Fiyat + ok — tam boyutta kalir
+                                        //    (FittedBox sadece ASIRI dar kutuda guvenlik)
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.center,
+                                          child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.center,
@@ -642,8 +647,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                                                   asset.sellPrice)))
                                                       : "-",
                                                   style: TextStyle(
-                                                      color:
-                                                          AppTheme.goldMain,
+                                                      color: AppTheme.goldMain,
                                                       fontSize: priceFontSize,
                                                       fontWeight:
                                                           FontWeight.bold,
@@ -652,8 +656,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                                       TextAlign.center),
                                               if (asset.changeRate > 0)
                                                 Icon(Icons.arrow_drop_up,
-                                                    color:
-                                                        AppTheme.neonGreen,
+                                                    color: AppTheme.neonGreen,
                                                     size: arrowSize)
                                               else if (asset.changeRate < 0)
                                                 Icon(Icons.arrow_drop_down,
@@ -661,11 +664,11 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                                     size: arrowSize)
                                             ],
                                           ),
-                                        ],
-                                      ),
-                                    ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
+                                ],
                               )),
                     if (isEditing && assetId != null)
                       Positioned(

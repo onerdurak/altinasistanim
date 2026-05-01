@@ -540,19 +540,19 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                 crossAxisCount: crossAxisCount,
                 childAspectRatio: aspectRatio,
                 crossAxisSpacing: 14,
-                mainAxisSpacing: 18),
+                mainAxisSpacing: 9),
             itemBuilder: (c, i) {
               String? assetId = slots[i];
               AssetType? asset = assetId != null ? marketMap[assetId] : null;
               bool isDollar = asset?.isDollarBase ?? false;
 
-              // Fiyat değişim rengi -> kenar/glow rengi
-              Color accent = AppTheme.goldMain;
+              // Fiyat degisim rengi — SADECE ic "I" ayirici icin
+              Color dividerColor = AppTheme.goldMain;
               if (asset != null) {
                 if (asset.changeRate > 0) {
-                  accent = AppTheme.neonGreen;
+                  dividerColor = AppTheme.neonGreen;
                 } else if (asset.changeRate < 0) {
-                  accent = AppTheme.neonRed;
+                  dividerColor = AppTheme.neonRed;
                 }
               }
 
@@ -561,57 +561,44 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                   onTap: () => _onSlotTap(i),
                   onLongPress: () => _onLongPress(i),
                   child: Stack(clipBehavior: Clip.none, children: [
-                    // Stadium/ellipse şekilli kart — gradient + accent glow
+                    // Stadium/ellipse şekilli kart — dis cember HEP altin
                     Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
-                        decoration: assetId == null
-                            ? BoxDecoration(
-                                gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF18181C),
-                                      Color(0xFF101014),
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter),
-                                // Stadium / hap şekli — yarıçap = yüksekliğin yarısı
-                                borderRadius:
-                                    BorderRadius.circular(itemHeight / 2),
-                                border: Border.all(
-                                    color: const Color(0x22FFD700),
-                                    width: 1.2),
-                                boxShadow: const [
-                                  BoxShadow(
-                                      color: Color(0x33000000),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 3)),
-                                ])
-                            : BoxDecoration(
-                                gradient: LinearGradient(
-                                    colors: const [
-                                      Color(0xFF24242A),
-                                      Color(0xFF15151A),
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter),
-                                borderRadius:
-                                    BorderRadius.circular(itemHeight / 2),
-                                border: Border.all(
-                                    color: accent.withAlpha(80),
-                                    width: 1.2),
-                                boxShadow: [
-                                  // Renkli accent glow
-                                  BoxShadow(
-                                      color: accent.withAlpha(40),
-                                      blurRadius: 14,
-                                      spreadRadius: 0,
-                                      offset: const Offset(0, 4)),
-                                  // Derinlik gölgesi
-                                  const BoxShadow(
-                                      color: Color(0x66000000),
-                                      blurRadius: 6,
-                                      offset: Offset(0, 2)),
-                                ]),
+                        decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                                colors: assetId == null
+                                    ? const [
+                                        Color(0xFF18181C),
+                                        Color(0xFF101014),
+                                      ]
+                                    : const [
+                                        Color(0xFF24242A),
+                                        Color(0xFF15151A),
+                                      ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter),
+                            borderRadius:
+                                BorderRadius.circular(itemHeight / 2),
+                            border: Border.all(
+                                color: assetId == null
+                                    ? const Color(0x33FFD700)
+                                    : const Color(0x55FFD700),
+                                width: 1.2),
+                            boxShadow: [
+                              // Altin glow (her zaman altin)
+                              BoxShadow(
+                                  color: AppTheme.goldMain.withAlpha(
+                                      assetId == null ? 18 : 32),
+                                  blurRadius: 12,
+                                  spreadRadius: 0,
+                                  offset: const Offset(0, 4)),
+                              // Derinlik
+                              const BoxShadow(
+                                  color: Color(0x66000000),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2)),
+                            ]),
                         child: assetId == null
                             // Bos slot — Kasa sayfasindaki "+" butonu stilinde
                             // altin sarisi "+" ikonu, hafif arka plan
@@ -629,8 +616,8 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                 children: [
                                   AssetCoin(type: asset!, size: coinSize),
                                   const SizedBox(width: 10),
-                                  // "I" accent renkli dikey ayirici (fiyat
-                                  // degisimine gore yesil/kirmizi/altin)
+                                  // "I" ayirici — fiyat degisimine gore renk
+                                  // (yesil/kirmizi/altin)
                                   Container(
                                     width: 2,
                                     height: coinSize * 0.82,
@@ -641,9 +628,9 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                             begin: Alignment.topCenter,
                                             end: Alignment.bottomCenter,
                                             colors: [
-                                          accent.withAlpha(0),
-                                          accent.withAlpha(220),
-                                          accent.withAlpha(0),
+                                          dividerColor.withAlpha(0),
+                                          dividerColor.withAlpha(230),
+                                          dividerColor.withAlpha(0),
                                         ])),
                                   ),
                                   const SizedBox(width: 10),

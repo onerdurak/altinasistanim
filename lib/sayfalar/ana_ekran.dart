@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../modeller.dart';
 import '../bilesenler/ortak_araclar.dart';
 import '../bilesenler/grafikler.dart';
+import '../bilesenler/matrix_arkaplan.dart';
 
 class DashboardPage extends StatefulWidget {
   final double netWorth;
@@ -82,7 +83,8 @@ class _DashboardPageState extends State<DashboardPage> {
     if (_isLoadingPrefs)
       return const Center(
           child: CircularProgressIndicator(color: AppTheme.goldMain));
-    return RefreshIndicator(
+    return MatrixArkaplan(
+      child: RefreshIndicator(
       color: AppTheme.goldMain,
       backgroundColor: AppTheme.card,
       onRefresh: widget.onRefresh,
@@ -119,19 +121,37 @@ class _DashboardPageState extends State<DashboardPage> {
                       curve: Curves.easeOutCubic,
                       width: double.infinity,
                       padding: EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: _isNetCollapsed ? 10 : 12),
+                          horizontal: 24,
+                          vertical: _isNetCollapsed ? 14 : 18),
                       decoration: BoxDecoration(
+                          // Daha zengin altin tonlu degrade
                           gradient: const LinearGradient(
-                              colors: [Color(0xFF2E2E2E), Color(0xFF111111)],
+                              colors: [
+                                Color(0xFF2A2418),
+                                Color(0xFF1A1814),
+                                Color(0xFF0E0E12),
+                              ],
+                              stops: [0.0, 0.45, 1.0],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white12),
-                          boxShadow: const [
+                          // Stadium / hap sekli — yuksekligin yarisi kadar
+                          // yari cap (hatta cok yuksek deger -> elips)
+                          borderRadius: BorderRadius.circular(
+                              _isNetCollapsed ? 60 : 80),
+                          border: Border.all(
+                              color: const Color(0x55FFD700),
+                              width: 1.4),
+                          boxShadow: [
+                            // Altin glow
                             BoxShadow(
-                                color: Color(0x80000000),
-                                blurRadius: 12,
+                                color: AppTheme.goldMain.withAlpha(38),
+                                blurRadius: 24,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 8)),
+                            // Derinlik
+                            const BoxShadow(
+                                color: Color(0x99000000),
+                                blurRadius: 14,
                                 offset: Offset(0, 8))
                           ]),
                       child: widget.isAppLocked
@@ -333,6 +353,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     textAlign: TextAlign.center)),
             const SizedBox(height: 50)
           ])),
+    ),
     );
   }
 }
@@ -539,8 +560,8 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
                 childAspectRatio: aspectRatio,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 9),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 5),
             itemBuilder: (c, i) {
               String? assetId = slots[i];
               AssetType? asset = assetId != null ? marketMap[assetId] : null;
@@ -566,34 +587,25 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                                colors: assetId == null
-                                    ? const [
-                                        Color(0xFF18181C),
-                                        Color(0xFF101014),
-                                      ]
-                                    : const [
-                                        Color(0xFF24242A),
-                                        Color(0xFF15151A),
-                                      ],
+                            // Bos ve dolu kutular AYNI gorsel — sadece icerik farkli
+                            gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF24242A),
+                                  Color(0xFF15151A),
+                                ],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter),
                             borderRadius:
                                 BorderRadius.circular(itemHeight / 2),
                             border: Border.all(
-                                color: assetId == null
-                                    ? const Color(0x33FFD700)
-                                    : const Color(0x55FFD700),
+                                color: const Color(0x55FFD700),
                                 width: 1.2),
                             boxShadow: [
-                              // Altin glow (her zaman altin)
                               BoxShadow(
-                                  color: AppTheme.goldMain.withAlpha(
-                                      assetId == null ? 18 : 32),
+                                  color: AppTheme.goldMain.withAlpha(32),
                                   blurRadius: 12,
                                   spreadRadius: 0,
                                   offset: const Offset(0, 4)),
-                              // Derinlik
                               const BoxShadow(
                                   color: Color(0x66000000),
                                   blurRadius: 6,
@@ -658,8 +670,8 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                               textAlign: TextAlign.center),
                                         ),
                                         const SizedBox(height: 4),
-                                        // 2) Fiyat + ok — tam boyutta kalir
-                                        //    (FittedBox sadece ASIRI dar kutuda guvenlik)
+                                        // 2) Fiyat + ok — fiyat metni ISIMLE
+                                        //    HIZALI (left phantom spacer ile)
                                         FittedBox(
                                           fit: BoxFit.scaleDown,
                                           alignment: Alignment.center,
@@ -668,6 +680,11 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.center,
                                             children: [
+                                              // Sol phantom — sag oktaki ile
+                                              // ayni genislik => fiyat metni
+                                              // gorsel olarak ortada kalsin
+                                              if (asset.changeRate != 0)
+                                                SizedBox(width: arrowSize),
                                               Text(
                                                   asset.sellPrice > 0
                                                       ? (isDollar

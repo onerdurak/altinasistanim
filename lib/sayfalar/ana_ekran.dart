@@ -523,11 +523,12 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
 
     // Kutu boyutuna göre ikon + yazı (genişlik ve yükseklik birlikte etkiler)
     final dim = math.min(itemWidth, itemHeight * 2.4);
-    final coinSize = (dim * 0.22).clamp(34.0, 56.0);
+    // Coin biraz küçük tutuldu — text alanı genişlesin, sağa kayma azalsın
+    final coinSize = (dim * 0.20).clamp(30.0, 52.0);
     final nameFontSize = (dim * 0.075).clamp(12.0, 18.0);
     final priceFontSize = (dim * 0.095).clamp(14.0, 22.0);
     final arrowSize = (dim * 0.13).clamp(18.0, 28.0);
-    final addIconSize = (dim * 0.18).clamp(28.0, 44.0);
+    final addIconSize = (dim * 0.20).clamp(32.0, 50.0);
 
     return GestureDetector(
         onTap: () {
@@ -554,25 +555,37 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                   child: Stack(clipBehavior: Clip.none, children: [
                     // Sabit altın çerçeve, içerik tam ortada
                     Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                            color: AppTheme.card,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                                color: const Color(0x26FFD700),
-                                width: 1.0),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: const Color(0x0FFFD700),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
-                                  offset: const Offset(0, 2)),
-                            ]),
+                        // Sol padding kuçuk, sag padding daha buyuk -> coin
+                        // sola yaslanir, text alani sag-merkeze daha yakin durur
+                        padding: const EdgeInsets.only(
+                            left: 8, right: 14, top: 8, bottom: 8),
+                        decoration: assetId == null
+                            ? BoxDecoration(
+                                color: AppTheme.card,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                    color: const Color(0x14FFD700),
+                                    width: 1.0))
+                            : BoxDecoration(
+                                color: AppTheme.card,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                    color: const Color(0x26FFD700),
+                                    width: 1.0),
+                                boxShadow: const [
+                                  BoxShadow(
+                                      color: Color(0x0FFFD700),
+                                      blurRadius: 8,
+                                      spreadRadius: 1,
+                                      offset: Offset(0, 2)),
+                                ]),
                         child: assetId == null
+                            // Bos slot — Kasa sayfasindaki "+" butonu stilinde
+                            // altin sarisi "+" ikonu, hafif arka plan
                             ? Center(
-                                child: Icon(Icons.add,
-                                    color: Colors.grey, size: addIconSize))
+                                child: Icon(Icons.add_rounded,
+                                    color: AppTheme.goldMain,
+                                    size: addIconSize))
                             // Layout:
                             // - Coin + "I" ayirici SOLDA (sabit konum)
                             // - Expanded ile metin alani kalan alanin ortasinda
@@ -582,7 +595,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   AssetCoin(type: asset!, size: coinSize),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 8),
                                   // "I" altin gradient dikey ayirici
                                   Container(
                                     width: 1.5,
@@ -597,7 +610,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                           Color(0x00FFD700),
                                         ])),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 8),
                                   // Metin alani — kalan alanin tam ortasinda
                                   Expanded(
                                     child: Column(

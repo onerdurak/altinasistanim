@@ -515,20 +515,18 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
     final itemWidth =
         (availableWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
 
-    // Kutu yüksekliği — eskisinden ~%30 daha büyük + textScale ile genişler
-    // Telefon küçükse daha kompakt, tablet/büyük ekranda daha ferah
-    final baseHeight = screenShortest >= 600 ? 96.0 : 78.0;
-    final itemHeight = (baseHeight * textScale).clamp(baseHeight, 130.0);
+    // Kutu yüksekliği — biraz daha bol (elips için ferah)
+    final baseHeight = screenShortest >= 600 ? 100.0 : 84.0;
+    final itemHeight = (baseHeight * textScale).clamp(baseHeight, 140.0);
     final aspectRatio = itemWidth / itemHeight;
 
-    // Kutu boyutuna göre ikon + yazı (genişlik ve yükseklik birlikte etkiler)
+    // Kutu boyutuna göre ikon + yazı
     final dim = math.min(itemWidth, itemHeight * 2.4);
-    // Coin biraz küçük tutuldu — text alanı genişlesin, sağa kayma azalsın
-    final coinSize = (dim * 0.20).clamp(30.0, 52.0);
+    final coinSize = (dim * 0.20).clamp(32.0, 56.0);
     final nameFontSize = (dim * 0.075).clamp(12.0, 18.0);
     final priceFontSize = (dim * 0.095).clamp(14.0, 22.0);
     final arrowSize = (dim * 0.13).clamp(18.0, 28.0);
-    final addIconSize = (dim * 0.20).clamp(32.0, 50.0);
+    final addIconSize = (dim * 0.22).clamp(34.0, 52.0);
 
     return GestureDetector(
         onTap: () {
@@ -541,42 +539,77 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
                 childAspectRatio: aspectRatio,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10),
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 18),
             itemBuilder: (c, i) {
               String? assetId = slots[i];
               AssetType? asset = assetId != null ? marketMap[assetId] : null;
               bool isDollar = asset?.isDollarBase ?? false;
+
+              // Fiyat değişim rengi -> kenar/glow rengi
+              Color accent = AppTheme.goldMain;
+              if (asset != null) {
+                if (asset.changeRate > 0) {
+                  accent = AppTheme.neonGreen;
+                } else if (asset.changeRate < 0) {
+                  accent = AppTheme.neonRed;
+                }
+              }
 
               return RepaintBoundary(
                 child: GestureDetector(
                   onTap: () => _onSlotTap(i),
                   onLongPress: () => _onLongPress(i),
                   child: Stack(clipBehavior: Clip.none, children: [
-                    // Sabit altın çerçeve, içerik tam ortada
+                    // Stadium/ellipse şekilli kart — gradient + accent glow
                     Container(
-                        // Sol padding kuçuk, sag padding daha buyuk -> coin
-                        // sola yaslanir, text alani sag-merkeze daha yakin durur
-                        padding: const EdgeInsets.only(
-                            left: 8, right: 14, top: 8, bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: assetId == null
                             ? BoxDecoration(
-                                color: AppTheme.card,
-                                borderRadius: BorderRadius.circular(14),
+                                gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF18181C),
+                                      Color(0xFF101014),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter),
+                                // Stadium / hap şekli — yarıçap = yüksekliğin yarısı
+                                borderRadius:
+                                    BorderRadius.circular(itemHeight / 2),
                                 border: Border.all(
-                                    color: const Color(0x14FFD700),
-                                    width: 1.0))
-                            : BoxDecoration(
-                                color: AppTheme.card,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                    color: const Color(0x26FFD700),
-                                    width: 1.0),
+                                    color: const Color(0x22FFD700),
+                                    width: 1.2),
                                 boxShadow: const [
                                   BoxShadow(
-                                      color: Color(0x0FFFD700),
+                                      color: Color(0x33000000),
                                       blurRadius: 8,
-                                      spreadRadius: 1,
+                                      offset: Offset(0, 3)),
+                                ])
+                            : BoxDecoration(
+                                gradient: LinearGradient(
+                                    colors: const [
+                                      Color(0xFF24242A),
+                                      Color(0xFF15151A),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter),
+                                borderRadius:
+                                    BorderRadius.circular(itemHeight / 2),
+                                border: Border.all(
+                                    color: accent.withAlpha(80),
+                                    width: 1.2),
+                                boxShadow: [
+                                  // Renkli accent glow
+                                  BoxShadow(
+                                      color: accent.withAlpha(40),
+                                      blurRadius: 14,
+                                      spreadRadius: 0,
+                                      offset: const Offset(0, 4)),
+                                  // Derinlik gölgesi
+                                  const BoxShadow(
+                                      color: Color(0x66000000),
+                                      blurRadius: 6,
                                       offset: Offset(0, 2)),
                                 ]),
                         child: assetId == null
@@ -595,22 +628,25 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   AssetCoin(type: asset!, size: coinSize),
-                                  const SizedBox(width: 8),
-                                  // "I" altin gradient dikey ayirici
+                                  const SizedBox(width: 10),
+                                  // "I" accent renkli dikey ayirici (fiyat
+                                  // degisimine gore yesil/kirmizi/altin)
                                   Container(
-                                    width: 1.5,
-                                    height: coinSize * 0.78,
-                                    decoration: const BoxDecoration(
+                                    width: 2,
+                                    height: coinSize * 0.82,
+                                    decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(2),
                                         gradient: LinearGradient(
                                             begin: Alignment.topCenter,
                                             end: Alignment.bottomCenter,
                                             colors: [
-                                          Color(0x00FFD700),
-                                          Color(0xCCFFD700),
-                                          Color(0x00FFD700),
+                                          accent.withAlpha(0),
+                                          accent.withAlpha(220),
+                                          accent.withAlpha(0),
                                         ])),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 10),
                                   // Metin alani — kalan alanin tam ortasinda
                                   Expanded(
                                     child: Column(

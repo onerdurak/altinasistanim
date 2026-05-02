@@ -364,9 +364,11 @@ class QuickAccessGrid extends StatefulWidget {
   State<QuickAccessGrid> createState() => _QuickAccessGridState();
 }
 
-class _QuickAccessGridState extends State<QuickAccessGrid> {
+class _QuickAccessGridState extends State<QuickAccessGrid>
+    with SingleTickerProviderStateMixin {
   List<String?> slots = List.filled(16, null);
   bool isEditing = false;
+  late final AnimationController _pulseCtrl;
   static final _currency0 =
       NumberFormat.currency(locale: "tr_TR", symbol: "₺", decimalDigits: 0);
   static final _currency2 =
@@ -378,6 +380,17 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
   void initState() {
     super.initState();
     _loadSlots();
+    // I divider icin nabiz animasyonu — fiyat hareketinde flicker
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSlots() async {
@@ -609,12 +622,56 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                   offset: Offset(0, 2)),
                             ]),
                         child: assetId == null
-                            // Bos slot — Kasa sayfasindaki "+" butonu stilinde
-                            // altin sarisi "+" ikonu, hafif arka plan
-                            ? Center(
-                                child: Icon(Icons.add_rounded,
-                                    color: AppTheme.goldMain,
-                                    size: addIconSize))
+                            // Bos slot — DOLU slotla AYNI yapida olsun:
+                            // sol ghost-coin (+) | I divider | "EKLE"
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Ghost coin: dolu slottaki coin'le ayni
+                                  // boyutta, icinde + simgesi
+                                  Container(
+                                    width: coinSize,
+                                    height: coinSize,
+                                    decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0x14FFD700),
+                                        border: Border.all(
+                                            color: const Color(0x55FFD700),
+                                            width: 1.2)),
+                                    child: Icon(Icons.add_rounded,
+                                        color: AppTheme.goldMain,
+                                        size: coinSize * 0.6),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  // I ayirici (sonuk altin)
+                                  Container(
+                                    width: 2,
+                                    height: coinSize * 0.82,
+                                    decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(2),
+                                        gradient: const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                          Color(0x00FFD700),
+                                          Color(0x88FFD700),
+                                          Color(0x00FFD700),
+                                        ])),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text("EKLE",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            color: AppTheme.goldMain
+                                                .withAlpha(180),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: nameFontSize,
+                                            letterSpacing: 1.0)),
+                                  ),
+                                ],
+                              )
                             // Layout:
                             // - Coin + "I" ayirici SOLDA (sabit konum)
                             // - Expanded ile metin alani kalan alanin ortasinda
@@ -625,22 +682,45 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                                 children: [
                                   AssetCoin(type: asset!, size: coinSize),
                                   const SizedBox(width: 10),
-                                  // "I" ayirici — fiyat degisimine gore renk
-                                  // (yesil/kirmizi/altin)
-                                  Container(
-                                    width: 2,
-                                    height: coinSize * 0.82,
-                                    decoration: BoxDecoration(
-                                        borderRadius:
-                                            BorderRadius.circular(2),
-                                        gradient: LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: [
-                                          dividerColor.withAlpha(0),
-                                          dividerColor.withAlpha(230),
-                                          dividerColor.withAlpha(0),
-                                        ])),
+                                  // "I" ayirici — fiyat hareket ediyorsa
+                                  // accent rengi NABIZ atar (matrix tarzi
+                                  // canli his), sabitse altin
+                                  AnimatedBuilder(
+                                    animation: _pulseCtrl,
+                                    builder: (c, _) {
+                                      // Sabit fiyatta: sabit altin gradient
+                                      // Hareket varsa: alpha pulse
+                                      final hasMove =
+                                          asset.changeRate != 0;
+                                      final pulse = hasMove
+                                          ? (140 +
+                                                  (90 *
+                                                          (0.5 +
+                                                              0.5 *
+                                                                  math.sin(
+                                                                      _pulseCtrl.value *
+                                                                          2 *
+                                                                          math.pi)))
+                                                      .toInt())
+                                          : 230;
+                                      return Container(
+                                        width: 2,
+                                        height: coinSize * 0.82,
+                                        decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(2),
+                                            gradient: LinearGradient(
+                                                begin:
+                                                    Alignment.topCenter,
+                                                end:
+                                                    Alignment.bottomCenter,
+                                                colors: [
+                                              dividerColor.withAlpha(0),
+                                              dividerColor.withAlpha(pulse),
+                                              dividerColor.withAlpha(0),
+                                            ])),
+                                      );
+                                    },
                                   ),
                                   const SizedBox(width: 10),
                                   // Metin alani — kalan alanin tam ortasinda

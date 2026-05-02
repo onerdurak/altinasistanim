@@ -138,7 +138,8 @@ class PiyasaMotoru {
 
   void _startTickerSimulation() {
     _simulationTimer?.cancel();
-    _simulationTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
+    // %30 hizlandi: 1500ms -> 1050ms (daha canli fiyat hareketi)
+    _simulationTimer = Timer.periodic(const Duration(milliseconds: 1050), (timer) {
       if (!isLiveConnection) return;
 
       final now = DateTime.now();

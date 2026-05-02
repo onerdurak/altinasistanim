@@ -16,6 +16,7 @@ class BorcAlacakPage extends StatefulWidget {
   final Function(PortfolioItem) onTap;
   final Function(PortfolioItem, bool) onDelete;
   final Future<void> Function() onRefresh;
+  final ValueChanged<int>? onTabChanged;
 
   const BorcAlacakPage({
     super.key,
@@ -25,6 +26,7 @@ class BorcAlacakPage extends StatefulWidget {
     required this.onTap,
     required this.onDelete,
     required this.onRefresh,
+    this.onTabChanged,
   });
 
   @override
@@ -39,6 +41,12 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl.addListener(() {
+      if (!_tabCtrl.indexIsChanging) {
+        widget.onTabChanged?.call(_tabCtrl.index);
+        if (mounted) setState(() {});
+      }
+    });
   }
 
   @override
@@ -140,7 +148,10 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
                 ),
               ),
             ],
-            onTap: (_) => setState(() {}),
+            onTap: (i) {
+              widget.onTabChanged?.call(i);
+              setState(() {});
+            },
           ),
         ),
         Expanded(
@@ -561,6 +572,51 @@ class _PortfolioCreatorState extends State<PortfolioCreator> {
   final _nameCtrl = TextEditingController();
   final Map<String, double> _liveAssets = {};
 
+  /// Sayi'ya tiklayinca acilan dialog — mevcut miktari duzenler
+  void _editQuantityDialog(AssetType asset) {
+    final current = _liveAssets[asset.id] ?? 0;
+    final qtyCtrl = TextEditingController(
+        text: current > 0 ? formatNumber(current) : "");
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: Text("${asset.name} Miktarı",
+            style: const TextStyle(color: Colors.white)),
+        content: TextField(
+            controller: qtyCtrl,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            autofocus: true,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+                hintText: "Yeni miktar...",
+                hintStyle: TextStyle(color: Colors.grey))),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text("İPTAL")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.goldMain,
+                foregroundColor: Colors.black),
+            onPressed: () {
+              final val =
+                  double.tryParse(qtyCtrl.text.replaceAll(',', '.'));
+              if (val != null && val > 0) {
+                setState(() => _liveAssets[asset.id] = val);
+              } else if (val != null && val == 0) {
+                setState(() => _liveAssets.remove(asset.id));
+              }
+              Navigator.pop(c);
+            },
+            child: const Text("KAYDET"),
+          )
+        ],
+      ),
+    );
+  }
+
   void _updateQuantity(AssetType asset) {
     if (asset.manualInput) {
       showDialog(
@@ -767,16 +823,21 @@ class _PortfolioCreatorState extends State<PortfolioCreator> {
                               }),
                           const SizedBox(width: 8),
                           GestureDetector(
-                              onTap: () => _updateQuantity(asset),
+                              onTap: () => _editQuantityDialog(asset),
                               child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
+                                      horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                       color: Colors.black45,
-                                      borderRadius: BorderRadius.circular(6)),
+                                      borderRadius:
+                                          BorderRadius.circular(8),
+                                      border: Border.all(
+                                          color: AppTheme.goldMain
+                                              .withAlpha(80),
+                                          width: 1)),
                                   child: Text(formatNumber(qty),
                                       style: const TextStyle(
-                                          color: Colors.white,
+                                          color: AppTheme.goldMain,
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold)))),
                           const SizedBox(width: 8),

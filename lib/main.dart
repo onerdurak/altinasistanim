@@ -117,6 +117,7 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _navIndex = 0;
+  int _borcAlacakTab = 0; // 0=Borç, 1=Alacak
   final PageController _pageController = PageController();
 
   late PiyasaMotoru _motor;
@@ -481,7 +482,8 @@ class _MainLayoutState extends State<MainLayout> {
           onTap: _openDetail,
           onDelete: (item, isCredit) =>
               _deletePortfolioItem(item, isCredit),
-          onRefresh: () async => await _motor.fetchLiveData(silent: false)),
+          onRefresh: () async => await _motor.fetchLiveData(silent: false),
+          onTabChanged: (i) => setState(() => _borcAlacakTab = i)),
       PortfolioDetail(
           item: _motor.wallet,
           market: _motor.market,
@@ -531,12 +533,12 @@ class _MainLayoutState extends State<MainLayout> {
                 children: securedPages),
         floatingActionButton: _navIndex == 1 && !_isAppLocked
             ? FloatingActionButton.extended(
-                onPressed: () => showAddChooserSheet(
-                    context, (isCredit) => _openCreator(isCredit)),
+                onPressed: () => _openCreator(_borcAlacakTab == 1),
                 backgroundColor: AppTheme.goldMain,
                 icon: const Icon(Icons.add_circle, color: Colors.black),
-                label: const Text("EKLE",
-                    style: TextStyle(
+                label: Text(
+                    _borcAlacakTab == 1 ? "ALACAK EKLE" : "BORÇ EKLE",
+                    style: const TextStyle(
                         color: Colors.black, fontWeight: FontWeight.bold)))
             : null,
         bottomNavigationBar: NavigationBar(

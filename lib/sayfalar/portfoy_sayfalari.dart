@@ -6,6 +6,309 @@ import 'package:intl/intl.dart';
 import '../modeller.dart';
 import '../bilesenler/ortak_araclar.dart';
 
+/// Borç ve Alacak'i tek sayfada birlestiren widget.
+/// Ust kisimda iki sekme: BORÇ / ALACAK
+/// FAB main.dart'tan ekleme dialogu gosterir.
+class BorcAlacakPage extends StatefulWidget {
+  final List<PortfolioItem> debts;
+  final List<PortfolioItem> credits;
+  final List<AssetType> market;
+  final Function(PortfolioItem) onTap;
+  final Function(PortfolioItem, bool) onDelete;
+  final Future<void> Function() onRefresh;
+
+  const BorcAlacakPage({
+    super.key,
+    required this.debts,
+    required this.credits,
+    required this.market,
+    required this.onTap,
+    required this.onDelete,
+    required this.onRefresh,
+  });
+
+  @override
+  State<BorcAlacakPage> createState() => _BorcAlacakPageState();
+}
+
+class _BorcAlacakPageState extends State<BorcAlacakPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Sekme bari — pill/stadium tarzi segmented control
+        Container(
+          margin: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppTheme.card,
+            borderRadius: BorderRadius.circular(50),
+            border: Border.all(color: const Color(0x33FFD700)),
+          ),
+          child: TabBar(
+            controller: _tabCtrl,
+            indicator: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFDAA520)],
+              ),
+              borderRadius: BorderRadius.circular(50),
+            ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.white70,
+            labelStyle:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            dividerColor: Colors.transparent,
+            tabs: [
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.arrow_circle_down,
+                        size: 18,
+                        color: _tabCtrl.index == 0
+                            ? Colors.black
+                            : AppTheme.neonRed),
+                    const SizedBox(width: 6),
+                    const Text("BORÇ"),
+                    const SizedBox(width: 6),
+                    if (widget.debts.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                            color: _tabCtrl.index == 0
+                                ? Colors.black26
+                                : AppTheme.neonRed.withAlpha(60),
+                            borderRadius: BorderRadius.circular(8)),
+                        child: Text("${widget.debts.length}",
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _tabCtrl.index == 0
+                                    ? Colors.black
+                                    : AppTheme.neonRed)),
+                      ),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.arrow_circle_up,
+                        size: 18,
+                        color: _tabCtrl.index == 1
+                            ? Colors.black
+                            : AppTheme.neonGreen),
+                    const SizedBox(width: 6),
+                    const Text("ALACAK"),
+                    const SizedBox(width: 6),
+                    if (widget.credits.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                            color: _tabCtrl.index == 1
+                                ? Colors.black26
+                                : AppTheme.neonGreen.withAlpha(60),
+                            borderRadius: BorderRadius.circular(8)),
+                        child: Text("${widget.credits.length}",
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: _tabCtrl.index == 1
+                                    ? Colors.black
+                                    : AppTheme.neonGreen)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            onTap: (_) => setState(() {}),
+          ),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabCtrl,
+            children: [
+              ListingPage(
+                items: widget.debts,
+                market: widget.market,
+                isCredit: false,
+                onTap: widget.onTap,
+                onDelete: (item) => widget.onDelete(item, false),
+                onRefresh: widget.onRefresh,
+              ),
+              ListingPage(
+                items: widget.credits,
+                market: widget.market,
+                isCredit: true,
+                onTap: widget.onTap,
+                onDelete: (item) => widget.onDelete(item, true),
+                onRefresh: widget.onRefresh,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Add chooser bottom sheet — borç mu alacak mı diye sorar
+void showAddChooserSheet(BuildContext context, void Function(bool isCredit) onPick) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (c) => Container(
+      decoration: const BoxDecoration(
+        color: AppTheme.bg,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 20),
+            const Text("YENİ KAYIT",
+                style: TextStyle(
+                    color: AppTheme.goldMain,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    letterSpacing: 1.5)),
+            const SizedBox(height: 6),
+            const Text("Hangisini eklemek istiyorsun?",
+                style: TextStyle(color: Colors.white60, fontSize: 13)),
+            const SizedBox(height: 22),
+            // Borç ekle
+            _ChooserCard(
+              icon: Icons.arrow_circle_down,
+              iconColor: AppTheme.neonRed,
+              title: "BORÇ EKLE",
+              subtitle: "Borçlu olduğun bir kayıt",
+              onTap: () {
+                Navigator.pop(c);
+                onPick(false);
+              },
+            ),
+            const SizedBox(height: 12),
+            // Alacak ekle
+            _ChooserCard(
+              icon: Icons.arrow_circle_up,
+              iconColor: AppTheme.neonGreen,
+              title: "ALACAK EKLE",
+              subtitle: "Alacaklı olduğun bir kayıt",
+              onTap: () {
+                Navigator.pop(c);
+                onPick(true);
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _ChooserCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _ChooserCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppTheme.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: iconColor.withAlpha(80), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: iconColor.withAlpha(28),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: iconColor.withAlpha(28),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 32),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 0.5)),
+                    const SizedBox(height: 3),
+                    Text(subtitle,
+                        style: const TextStyle(
+                            color: Colors.white60, fontSize: 12)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.white54),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
 class ListingPage extends StatefulWidget {
   final List<PortfolioItem> items;
   final List<AssetType> market;

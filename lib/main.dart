@@ -473,19 +473,14 @@ class _MainLayoutState extends State<MainLayout> {
           isPrimaryEngineActive: _motor.isPrimaryEngineActive,
           isConnected: _motor.isLiveConnection,
           onRefresh: () async => await _motor.fetchLiveData(silent: false)),
-      ListingPage(
-          items: _motor.debts,
+      // Borç ve Alacak — birlestirilmis tek sayfa, ic sekmeyle
+      BorcAlacakPage(
+          debts: _motor.debts,
+          credits: _motor.credits,
           market: _motor.market,
-          isCredit: false,
           onTap: _openDetail,
-          onDelete: (i) => _deletePortfolioItem(i, false),
-          onRefresh: () async => await _motor.fetchLiveData(silent: false)),
-      ListingPage(
-          items: _motor.credits,
-          market: _motor.market,
-          isCredit: true,
-          onTap: _openDetail,
-          onDelete: (i) => _deletePortfolioItem(i, true),
+          onDelete: (item, isCredit) =>
+              _deletePortfolioItem(item, isCredit),
           onRefresh: () async => await _motor.fetchLiveData(silent: false)),
       PortfolioDetail(
           item: _motor.wallet,
@@ -510,7 +505,7 @@ class _MainLayoutState extends State<MainLayout> {
         endDrawer: _buildRightMenu(context),
         appBar: AppBar(
             title: Text(
-                ["ALTIN ASİSTANIM", "BORÇLAR", "ALACAKLAR", "KASA"][_navIndex]),
+                ["ALTIN ASİSTANIM", "BORÇ & ALACAK", "KASA"][_navIndex]),
             actions: [
               if (_motor.isLoading)
                 const Padding(
@@ -534,16 +529,16 @@ class _MainLayoutState extends State<MainLayout> {
                   setState(() => _navIndex = i);
                 },
                 children: securedPages),
-        floatingActionButton:
-            (_navIndex == 1 || _navIndex == 2) && !_isAppLocked
-                ? FloatingActionButton.extended(
-                    onPressed: () => _openCreator(_navIndex == 2),
-                    backgroundColor: AppTheme.goldMain,
-                    icon: const Icon(Icons.add_circle, color: Colors.black),
-                    label: Text(_navIndex == 2 ? "ALACAK EKLE" : "BORÇ EKLE",
-                        style: const TextStyle(
-                            color: Colors.black, fontWeight: FontWeight.bold)))
-                : null,
+        floatingActionButton: _navIndex == 1 && !_isAppLocked
+            ? FloatingActionButton.extended(
+                onPressed: () => showAddChooserSheet(
+                    context, (isCredit) => _openCreator(isCredit)),
+                backgroundColor: AppTheme.goldMain,
+                icon: const Icon(Icons.add_circle, color: Colors.black),
+                label: const Text("EKLE",
+                    style: TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.bold)))
+            : null,
         bottomNavigationBar: NavigationBar(
             selectedIndex: _navIndex,
             onDestinationSelected: (i) {
@@ -558,15 +553,10 @@ class _MainLayoutState extends State<MainLayout> {
                   selectedIcon: Icon(Icons.dashboard, color: AppTheme.goldMain),
                   label: "Özet"),
               NavigationDestination(
-                  icon: Icon(Icons.arrow_circle_down_outlined),
-                  selectedIcon:
-                      Icon(Icons.arrow_circle_down, color: AppTheme.neonRed),
-                  label: "Borç"),
-              NavigationDestination(
-                  icon: Icon(Icons.arrow_circle_up_outlined),
-                  selectedIcon:
-                      Icon(Icons.arrow_circle_up, color: AppTheme.neonGreen),
-                  label: "Alacak"),
+                  icon: Icon(Icons.swap_vert_circle_outlined),
+                  selectedIcon: Icon(Icons.swap_vert_circle,
+                      color: AppTheme.goldMain),
+                  label: "Borç & Alacak"),
               NavigationDestination(
                   icon: Icon(Icons.wallet_outlined),
                   selectedIcon: Icon(Icons.wallet, color: AppTheme.goldMain),

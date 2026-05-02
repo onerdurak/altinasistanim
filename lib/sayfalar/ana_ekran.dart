@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../modeller.dart';
 import '../bilesenler/ortak_araclar.dart';
 import '../bilesenler/grafikler.dart';
-import '../bilesenler/matrix_arkaplan.dart';
 
 class DashboardPage extends StatefulWidget {
   final double netWorth;
@@ -83,8 +82,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (_isLoadingPrefs)
       return const Center(
           child: CircularProgressIndicator(color: AppTheme.goldMain));
-    return MatrixArkaplan(
-      child: RefreshIndicator(
+    return RefreshIndicator(
       color: AppTheme.goldMain,
       backgroundColor: AppTheme.card,
       onRefresh: widget.onRefresh,
@@ -353,7 +351,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     textAlign: TextAlign.center)),
             const SizedBox(height: 50)
           ])),
-    ),
     );
   }
 }

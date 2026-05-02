@@ -531,18 +531,18 @@ class _QuickAccessGridState extends State<QuickAccessGrid>
     final mq = MediaQuery.of(context);
     final textScale = mq.textScaler.scale(1.0);
 
-    // STANDART KUTU BOYUTU — referans: en uzun isim "Altın / ONS" sigsin
-    // Maksimum kutu genisligi 230px, yukseklik 80px (mobilde sabit)
-    // Bu sayede tablet/landscape/dikey her ekranda AYNI gorunur
-    const double targetItemWidth = 230.0;
-    const double targetItemHeight = 80.0;
+    // STANDART KUTU BOYUTU — TÜM ekranlarda ayni gorunum
+    // Daha kompakt, simetrik proporsiyonlar
+    const double targetItemWidth = 220.0;
+    const double targetItemHeight = 68.0;
     final itemHeight = targetItemHeight * textScale.clamp(1.0, 1.15);
 
-    // Coin/yazi boyutlari — sabit, kutu boyutuna gore
-    const double coinSize = 44.0;
-    const double nameFontSize = 14.0;
-    const double priceFontSize = 16.0;
-    const double arrowSize = 22.0;
+    // Coin/yazi boyutlari — sabit, simetrik
+    // Coin yuksekligin ~%50si (eskisi %55 idi, gozu yormuyor)
+    const double coinSize = 34.0;
+    const double nameFontSize = 13.0;
+    const double priceFontSize = 14.5;
+    const double arrowSize = 18.0;
 
     return GestureDetector(
         onTap: () {

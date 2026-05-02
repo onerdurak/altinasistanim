@@ -532,14 +532,11 @@ class _MainLayoutState extends State<MainLayout> {
                 },
                 children: securedPages),
         floatingActionButton: _navIndex == 1 && !_isAppLocked
-            ? FloatingActionButton.extended(
+            ? FloatingActionButton(
                 onPressed: () => _openCreator(_borcAlacakTab == 1),
                 backgroundColor: AppTheme.goldMain,
-                icon: const Icon(Icons.add_circle, color: Colors.black),
-                label: Text(
-                    _borcAlacakTab == 1 ? "ALACAK EKLE" : "BORÇ EKLE",
-                    style: const TextStyle(
-                        color: Colors.black, fontWeight: FontWeight.bold)))
+                shape: const CircleBorder(),
+                child: const Icon(Icons.add, color: Colors.black, size: 32))
             : null,
         bottomNavigationBar: NavigationBar(
             selectedIndex: _navIndex,

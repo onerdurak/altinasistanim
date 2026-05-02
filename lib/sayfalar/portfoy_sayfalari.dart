@@ -41,12 +41,21 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    // Animasyon DEGERINI dinle -> renkler tab degisirken aninda guncellenir
+    _tabCtrl.animation?.addListener(() {
+      if (mounted) setState(() {});
+    });
     _tabCtrl.addListener(() {
       if (!_tabCtrl.indexIsChanging) {
         widget.onTabChanged?.call(_tabCtrl.index);
-        if (mounted) setState(() {});
       }
     });
+  }
+
+  // Anlik aktif tab — animasyon sirasinda dahi anlik dogru deger
+  int get _activeTab {
+    final v = _tabCtrl.animation?.value ?? _tabCtrl.index.toDouble();
+    return v.round();
   }
 
   @override
@@ -89,7 +98,7 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
                   children: [
                     Icon(Icons.arrow_circle_down,
                         size: 18,
-                        color: _tabCtrl.index == 0
+                        color: _activeTab == 0
                             ? Colors.black
                             : AppTheme.neonRed),
                     const SizedBox(width: 6),
@@ -100,7 +109,7 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                            color: _tabCtrl.index == 0
+                            color: _activeTab == 0
                                 ? Colors.black26
                                 : AppTheme.neonRed.withAlpha(60),
                             borderRadius: BorderRadius.circular(8)),
@@ -108,7 +117,7 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
                             style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: _tabCtrl.index == 0
+                                color: _activeTab == 0
                                     ? Colors.black
                                     : AppTheme.neonRed)),
                       ),
@@ -121,7 +130,7 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
                   children: [
                     Icon(Icons.arrow_circle_up,
                         size: 18,
-                        color: _tabCtrl.index == 1
+                        color: _activeTab == 1
                             ? Colors.black
                             : AppTheme.neonGreen),
                     const SizedBox(width: 6),
@@ -132,7 +141,7 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                            color: _tabCtrl.index == 1
+                            color: _activeTab == 1
                                 ? Colors.black26
                                 : AppTheme.neonGreen.withAlpha(60),
                             borderRadius: BorderRadius.circular(8)),
@@ -140,7 +149,7 @@ class _BorcAlacakPageState extends State<BorcAlacakPage>
                             style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: _tabCtrl.index == 1
+                                color: _activeTab == 1
                                     ? Colors.black
                                     : AppTheme.neonGreen)),
                       ),

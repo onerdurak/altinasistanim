@@ -82,7 +82,8 @@ class _DashboardPageState extends State<DashboardPage> {
     if (_isLoadingPrefs)
       return const Center(
           child: CircularProgressIndicator(color: AppTheme.goldMain));
-    return RefreshIndicator(
+    return SafeArea(
+      child: RefreshIndicator(
       color: AppTheme.goldMain,
       backgroundColor: AppTheme.card,
       onRefresh: widget.onRefresh,
@@ -351,6 +352,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     textAlign: TextAlign.center)),
             const SizedBox(height: 50)
           ])),
+    ),
     );
   }
 }
@@ -527,37 +529,20 @@ class _QuickAccessGridState extends State<QuickAccessGrid>
   Widget build(BuildContext context) {
     final marketMap = {for (var a in widget.market) a.id: a};
     final mq = MediaQuery.of(context);
-    final screenWidth = mq.size.width;
-    final screenShortest = mq.size.shortestSide;
     final textScale = mq.textScaler.scale(1.0);
 
-    // Ekran genişliğine göre sütun sayısı (tablette daha çok sütun)
-    int crossAxisCount;
-    if (screenWidth >= 1100) {
-      crossAxisCount = 4;
-    } else if (screenWidth >= 700) {
-      crossAxisCount = 3;
-    } else {
-      crossAxisCount = 2;
-    }
+    // STANDART KUTU BOYUTU — referans: en uzun isim "Altın / ONS" sigsin
+    // Maksimum kutu genisligi 230px, yukseklik 80px (mobilde sabit)
+    // Bu sayede tablet/landscape/dikey her ekranda AYNI gorunur
+    const double targetItemWidth = 230.0;
+    const double targetItemHeight = 80.0;
+    final itemHeight = targetItemHeight * textScale.clamp(1.0, 1.15);
 
-    // Kutu genişliği: (ekran - dış padding - sütun boşlukları) / sütun
-    final availableWidth = screenWidth - 40;
-    final itemWidth =
-        (availableWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
-
-    // Kutu yüksekliği — biraz daha bol (elips için ferah)
-    final baseHeight = screenShortest >= 600 ? 100.0 : 84.0;
-    final itemHeight = (baseHeight * textScale).clamp(baseHeight, 140.0);
-    final aspectRatio = itemWidth / itemHeight;
-
-    // Kutu boyutuna göre ikon + yazı
-    final dim = math.min(itemWidth, itemHeight * 2.4);
-    final coinSize = (dim * 0.20).clamp(32.0, 56.0);
-    final nameFontSize = (dim * 0.075).clamp(12.0, 18.0);
-    final priceFontSize = (dim * 0.095).clamp(14.0, 22.0);
-    final arrowSize = (dim * 0.13).clamp(18.0, 28.0);
-    final addIconSize = (dim * 0.22).clamp(34.0, 52.0);
+    // Coin/yazi boyutlari — sabit, kutu boyutuna gore
+    const double coinSize = 44.0;
+    const double nameFontSize = 14.0;
+    const double priceFontSize = 16.0;
+    const double arrowSize = 22.0;
 
     return GestureDetector(
         onTap: () {
@@ -567,11 +552,13 @@ class _QuickAccessGridState extends State<QuickAccessGrid>
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: 16,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                childAspectRatio: aspectRatio,
+            // MaxCrossAxisExtent ile kutular maksimum 230px genis
+            // (otomatik sutun sayisi: 380->2, 700->3, 900->4)
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: targetItemWidth,
+                mainAxisExtent: itemHeight,
                 crossAxisSpacing: 10,
-                mainAxisSpacing: 5),
+                mainAxisSpacing: 6),
             itemBuilder: (c, i) {
               String? assetId = slots[i];
               AssetType? asset = assetId != null ? marketMap[assetId] : null;

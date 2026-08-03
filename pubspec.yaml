@@ -1,7 +1,7 @@
 name: altin_asistanim
 description: Altin ve Borc Takip Uygulamasi
 publish_to: 'none'
-version: 1.0.27+65
+version: 1.0.28+66
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -21,7 +21,8 @@ dependencies:
   shared_preferences: ^2.2.2
   url_launcher: ^6.3.0
   local_auth: ^3.0.1
-  in_app_purchase: ^3.2.3
+  # Geliştiriciye Destek Ol ödüllü reklamı (ücretli satın almalar 1.0.28'de kaldırıldı)
+  google_mobile_ads: ^9.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

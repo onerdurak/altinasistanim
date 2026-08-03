@@ -53,13 +53,19 @@ class PiyasaMotoru {
   final Random _random = Random();
   DateTime? _lastFetchTime;
 
-  // Google Sheets geçmiş veri URL'si (geçmiş sekmesi)
-  static const String _sheetsHistoryUrl =
-      'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv&gid=1578620279';
+  // Fiyat verisi kendi sunucumuzdan gelir (drksistem.com). Eskiden Google
+  // Sheets'ten okunuyordu; veriyi üreten Apps Script mantığı sunucuya
+  // taşındı, biçim birebir aynı tutuldu.
+  static const String _veriKoku = 'https://drksistem.com/veri';
 
-  // Google Sheets saatlik veri URL'si (saatlik sekmesi)
-  static const String _sheetsSaatlikUrl =
-      'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv&gid=395501293';
+  // Canlı fiyatlar — eski CANLI KUR sekmesinin karşılığı
+  static const String _sheetsCanliUrl = '$_veriKoku/canli.csv';
+
+  // Günlük geçmiş — eski GEÇMİŞ sekmesinin karşılığı
+  static const String _sheetsHistoryUrl = '$_veriKoku/gecmis.csv';
+
+  // Saatlik veri — eski Saatlik sekmesinin karşılığı
+  static const String _sheetsSaatlikUrl = '$_veriKoku/saatlik.csv';
 
   PiyasaMotoru({required this.onUpdate});
 
@@ -352,8 +358,7 @@ class PiyasaMotoru {
   // ── SHEETS: Altın & Gümüş & GBP fiyatları ──
   Future<bool> _fetchSheetsData() async {
     try {
-      final response = await http.get(Uri.parse(
-          'https://docs.google.com/spreadsheets/d/1hXX1HmhjTGihxapua3D9iV3gq0kNRufy2ZQDD7HykeU/export?format=csv'))
+      final response = await http.get(Uri.parse(_sheetsCanliUrl))
           .timeout(const Duration(seconds: 15),
               onTimeout: () => http.Response('', 408));
       if (response.statusCode != 200) return false;

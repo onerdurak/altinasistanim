@@ -473,6 +473,12 @@ class _MainLayoutState extends State<MainLayout> {
           },
           isPrimaryEngineActive: _motor.isPrimaryEngineActive,
           isConnected: _motor.isLiveConnection,
+          onSupportTap: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (c) => const SupportDeveloperPage()));
+          },
           onRefresh: () async => await _motor.fetchLiveData(silent: false)),
       // Borç ve Alacak — birlestirilmis tek sayfa, ic sekmeyle
       BorcAlacakPage(

@@ -21,6 +21,7 @@ class DashboardPage extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final bool isPrimaryEngineActive;
   final bool isConnected;
+  final VoidCallback onSupportTap;
 
   const DashboardPage(
       {super.key,
@@ -36,6 +37,7 @@ class DashboardPage extends StatefulWidget {
       required this.onStatTap,
       required this.isPrimaryEngineActive,
       required this.isConnected,
+      required this.onSupportTap,
       required this.onRefresh});
 
   @override
@@ -340,6 +342,27 @@ class _DashboardPageState extends State<DashboardPage> {
             ]),
             QuickAccessGrid(
                 market: widget.market, onAssetTap: widget.onAssetTap),
+            // Geliştiriciye Destek Ol — bilerek en alta, tüm içerik bittikten
+            // sonra. Kullanıcı buraya kaydırmadan görmez, dolgusuz ince çerçeve
+            // finansal verilerle görsel olarak yarışmaz ve hiçbir şey
+            // kendiliğinden açılmaz; yalnız dokunulursa destek sayfası gelir.
+            Padding(
+                padding: const EdgeInsets.only(top: 28),
+                child: OutlinedButton.icon(
+                    onPressed: widget.onSupportTap,
+                    style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.goldMain,
+                        side: BorderSide(
+                            color: AppTheme.goldMain.withAlpha(60)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14))),
+                    icon: const Icon(Icons.favorite_rounded, size: 18),
+                    label: const _CamParilti(
+                        child: Text("Geliştiriciye Destek Ol",
+                            style: TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600))))),
             Container(
                 margin: const EdgeInsets.only(top: 30, bottom: 20),
                 alignment: Alignment.center,
@@ -974,5 +997,68 @@ class _HistoryChartPageState extends State<HistoryChartPage> {
               ],
               const SizedBox(height: 20),
             ])));
+  }
+}
+
+/// Yazının üstünden yavaşça geçen cam parıltısı.
+///
+/// Altın rengi taban olarak kalır, üzerinden geniş ve yumuşak bir açık bant
+/// kayar — camdan yansıyan ışık hissi. Bilerek sakin: tek geçiş yaklaşık 1,4
+/// saniye sürer, ardından ~1,8 saniye durur, böylece göz yormaz.
+class _CamParilti extends StatefulWidget {
+  final Widget child;
+  const _CamParilti({required this.child});
+
+  @override
+  State<_CamParilti> createState() => _CamPariltiState();
+}
+
+class _CamPariltiState extends State<_CamParilti>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  late final CurvedAnimation _ilerleme;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 3200))
+      ..repeat();
+    // Sure'nin ilk %45'inde parilti gecer, kalan sure dinlenme payidir.
+    _ilerleme = CurvedAnimation(
+        parent: _c, curve: const Interval(0, 0.45, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ilerleme.dispose();
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+        animation: _ilerleme,
+        child: widget.child,
+        builder: (context, child) => ShaderMask(
+            // srcIn: yazinin sekli maskeyi, gradyan ise rengi verir.
+            blendMode: BlendMode.srcIn,
+            shaderCallback: (rect) {
+              // Bant yazidan dar; sol disaridan girip sag disariya cikar.
+              // Shader dikdortgeni disinda gradyan uc rengi (altin) uzadigi
+              // icin yazi her zaman altin kalir, yalniz bant parlar.
+              final bant = rect.width * 0.7;
+              final x = rect.left - bant + (rect.width + bant) * _ilerleme.value;
+              return const LinearGradient(
+                      colors: [
+                    AppTheme.goldMain,
+                    Color(0xFFFFFDF2),
+                    AppTheme.goldMain
+                  ])
+                  .createShader(
+                      Rect.fromLTWH(x, rect.top, bant, rect.height));
+            },
+            child: child));
   }
 }

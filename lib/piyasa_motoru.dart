@@ -987,6 +987,10 @@ class PiyasaMotoru {
         intraDayHistory =
             (jsonDecode(prefs.getString('intraday_history')!) as List)
                 .map((e) => Map<String, dynamic>.from(e))
+                // Eski sürümlerin biriktirdiği saat başı olmayan kayıtlar
+                // (19:08 gibi) burada eleniyor; önbellekte yalnız saatlik
+                // sunucu kaydı kalsın.
+                .where((e) => (e["time"] as String?)?.endsWith(':00') ?? false)
                 .toList();
       }
 
@@ -1105,19 +1109,12 @@ class PiyasaMotoru {
       historyData = historyData.sublist(historyData.length - 30);
     await prefs.setString('history', jsonEncode(historyData));
 
-    Map<String, dynamic> currentPrices = {};
-    for (var a in market) {
-      double p = a.isDollarBase ? a.usdPrice : a.sellPrice;
-      if (p > 0) currentPrices[a.id] = p;
-    }
-    // Hiç geçerli fiyat yoksa kaydetme (henüz veri gelmemiş)
-    if (currentPrices.isNotEmpty) {
-      String timeKey = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
-      if (intraDayHistory.isEmpty || intraDayHistory.last["time"] != timeKey) {
-        intraDayHistory.add({"time": timeKey, "prices": currentPrices});
-        if (intraDayHistory.length > 600) intraDayHistory.removeAt(0);
-        await prefs.setString('intraday_history', jsonEncode(intraDayHistory));
-      }
+    // 1G grafiğine yalnız sunucunun saat başı kaydı girsin diye buradaki
+    // yerel anlık görüntü (19:08 gibi rastgele dakikalar) ARTIK EKLENMİYOR.
+    // Liste yalnızca sunucudan gelen saatlik kayıtların çevrimdışı
+    // önbelleğidir; ağ yokken grafiğin boş kalmaması için yazılmaya devam eder.
+    if (intraDayHistory.isNotEmpty) {
+      await prefs.setString('intraday_history', jsonEncode(intraDayHistory));
     }
 
     Map<String, dynamic> todayPrices = {};

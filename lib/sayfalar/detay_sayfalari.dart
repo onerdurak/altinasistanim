@@ -83,41 +83,26 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
       // (drksistem.com/veri/saatlik.csv ve saatlik-7g.csv, 18 emtianın
       // tamamı için). Veri yoksa uydurmak yerine boş dönülür; ekranda
       // "saatlik veri yükleniyor" yazısı görünür.
-      if (widget.intraDayHistory.isEmpty) {
-        return result;
-      } else {
-        DateTime yesterday = now.subtract(const Duration(hours: 24));
-        for (var log in widget.intraDayHistory) {
-          DateTime logTime = DateFormat('yyyy-MM-dd HH:mm').parse(log["time"]);
-          if (logTime.isAfter(yesterday)) {
-            double p = (log["prices"][widget.asset.id] as num?)?.toDouble() ?? 0;
-            // Veri yoksa referans emtiadan türet
-            if (p <= 0 && currentPrice > 0) {
-              String refId = widget.asset.isDollarBase ? 'ons' : 'has';
-              double refP = (log["prices"][refId] as num?)?.toDouble() ?? 0;
-              if (refP > 0) {
-                double nowRef = widget.asset.isDollarBase ? 4672.80 : 6900;
-                for (var lg in widget.intraDayHistory) {
-                  double r = (lg["prices"][refId] as num?)?.toDouble() ?? 0;
-                  if (r > 0) nowRef = r;
-                }
-                p = currentPrice * (refP / nowRef);
-              }
-            }
-            if (p <= 0) continue;
-            String timeStr = DateFormat('HH:mm').format(logTime);
-            String fullStr = DateFormat('dd.MM.yyyy HH:mm').format(logTime);
-            result.add({'val': p, 'label': timeStr, 'dateStr': fullStr});
-          }
-        }
-        if (result.isEmpty ||
-            result.last['label'] != DateFormat('HH:mm').format(now)) {
-          result.add({
-            'val': currentPrice,
-            'label': DateFormat('HH:mm').format(now),
-            'dateStr': DateFormat('dd.MM.yyyy HH:mm').format(now)
-          });
-        }
+      // Grafiğe YALNIZ sunucunun saat başı gerçek kaydı girer. Buradaki iki
+      // uydurma kaynak kaldırıldı: (1) fiyatı olmayan emtia referans
+      // emtiadan oranlanarak türetiliyordu, (2) serinin sonuna o anki dakika
+      // (19:08 gibi) canlı fiyatla ekleniyordu. Artık veri yoksa nokta da yok.
+      if (widget.intraDayHistory.isEmpty) return result;
+
+      DateTime yesterday = now.subtract(const Duration(hours: 24));
+      for (var log in widget.intraDayHistory) {
+        DateTime logTime = DateFormat('yyyy-MM-dd HH:mm').parse(log["time"]);
+        // Saat başı olmayan kayıtlar — eski sürümlerin cihazda tuttuğu anlık
+        // görüntüleri — grafiğe alınmaz.
+        if (logTime.minute != 0) continue;
+        if (!logTime.isAfter(yesterday)) continue;
+        double p = (log["prices"][widget.asset.id] as num?)?.toDouble() ?? 0;
+        if (p <= 0) continue;
+        result.add({
+          'val': p,
+          'label': DateFormat('HH:mm').format(logTime),
+          'dateStr': DateFormat('dd.MM.yyyy HH:mm').format(logTime)
+        });
       }
       return result;
     }

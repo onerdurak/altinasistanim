@@ -40,6 +40,11 @@ class PiyasaMotoru {
   Map<String, Map<String, dynamic>> assetHistory = {};
   List<Map<String, dynamic>> intraDayHistory = [];
 
+  /// Sunucudaki günlük geçmiş (gecmis.csv) sağlıklı okunduysa true.
+  /// Doğruysa Binance'ten formülle geçmiş **uydurulmaz** — sunucu artık
+  /// tüm emtiaların gerçek kapanışını saatlik arşivden yazıyor.
+  bool sunucuGecmisiTamam = false;
+
   double liveNetWorth = 0;
   double liveWalletVal = 0;
   double liveCreditVal = 0;
@@ -64,8 +69,15 @@ class PiyasaMotoru {
   // Günlük geçmiş — eski GEÇMİŞ sekmesinin karşılığı
   static const String _sheetsHistoryUrl = '$_veriKoku/gecmis.csv';
 
-  // Saatlik veri — eski Saatlik sekmesinin karşılığı
+  // Saatlik veri — eski Saatlik sekmesinin karşılığı. Son 24 saat.
+  // AÇILIŞTA BİR KEZ çekilir ve sunucuda bilerek önbelleklenmez; bu yüzden
+  // bir istek = bir uygulama açılışı demek, cihaz sayımı buradan yapılıyor
+  // (~/drksistem/cihaz-say.sh). Periyodik yenileme bu adrese YAPILMAMALI.
   static const String _sheetsSaatlikUrl = '$_veriKoku/saatlik.csv';
+
+  // Aynı veri 7 günlük pencereyle; periyodik yenileme bunu kullanır.
+  // Sunucu tarafında kalıcı saatlik arşivden üretilir (veri-toplayici/arsiv.py).
+  static const String _saatlikGenisUrl = '$_veriKoku/saatlik-7g.csv';
 
   PiyasaMotoru({required this.onUpdate});
 
@@ -111,6 +123,9 @@ class PiyasaMotoru {
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
       fetchLiveData(silent: true).then((_) {
         _lastFetchTime = DateTime.now();
+        // 1G grafiği sunucudaki saatlik kayıttan beslenir; yenilenmezse
+        // uygulama açık kaldıkça grafik açılış anındaki saatte donuyordu.
+        _fetchIntraDayFromSheets(genis: true);
       });
     });
     // İlk veri gelene kadar 3 saniye bekle, sonra simulation başlat
@@ -482,7 +497,10 @@ class PiyasaMotoru {
       // Günde 1 kez çek (cache kontrolü)
       String todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
       String? lastFetch = prefs.getString('sheets_history_last_fetch');
-      if (lastFetch == todayKey && assetHistory.isNotEmpty) return;
+      if (lastFetch == todayKey && assetHistory.isNotEmpty) {
+        sunucuGecmisiTamam = true; // bugün zaten çekilmiş, veri elde
+        return;
+      }
 
       final uri = Uri.parse(_sheetsHistoryUrl);
       final response = await http.get(uri).timeout(const Duration(seconds: 15));
@@ -609,6 +627,7 @@ class PiyasaMotoru {
       // Yerel cache'e kaydet
       await prefs.setString('asset_history_v2', jsonEncode(assetHistory));
       await prefs.setString('sheets_history_last_fetch', todayKey);
+      sunucuGecmisiTamam = true;
     } catch (e) {
       // Sessizce devam et — cache'deki veriyle çalışır
     }
@@ -625,9 +644,12 @@ class PiyasaMotoru {
   // ------------------------------------------------------------------
   // SHEETS'TEN SAATLİK VERİ ÇEK (Son 24 saat grafiği için)
   // ------------------------------------------------------------------
-  Future<void> _fetchIntraDayFromSheets() async {
+  /// [genis] true ise 7 günlük dosyayı çeker. Açılıştaki ilk çekim daima
+  /// dar dosyayı kullanır — o dosya aynı zamanda cihaz sayacıdır.
+  Future<void> _fetchIntraDayFromSheets({bool genis = false}) async {
     try {
-      final response = await http.get(Uri.parse(_sheetsSaatlikUrl))
+      final response = await http
+          .get(Uri.parse(genis ? _saatlikGenisUrl : _sheetsSaatlikUrl))
           .timeout(const Duration(seconds: 10),
               onTimeout: () => http.Response('', 408));
       if (response.statusCode != 200) return;
@@ -682,8 +704,11 @@ class PiyasaMotoru {
         }
         List<String> sortedKeys = merged.keys.toList()..sort();
         intraDayHistory = sortedKeys.map((k) => merged[k]!).toList();
-        if (intraDayHistory.length > 288) {
-          intraDayHistory = intraDayHistory.sublist(intraDayHistory.length - 288);
+        // 168 saatlik sunucu kaydı + yerel 5 dakikalık kayıtlar birlikte
+        // sığsın diye tavan yükseltildi (eskiden 288'de sunucu geçmişi
+        // yerel kayıtları kırpıyordu).
+        if (intraDayHistory.length > 600) {
+          intraDayHistory = intraDayHistory.sublist(intraDayHistory.length - 600);
         }
       }
     } catch (e) {
@@ -696,6 +721,14 @@ class PiyasaMotoru {
   // ------------------------------------------------------------------
   Future<void> fillHistoricalGaps() async {
     try {
+      // Sunucu geçmişi geldiyse burada işimiz yok. Aşağıdaki blok altın
+      // ürünlerini PAXG'den sabit kat sayılarla TÜRETİYOR (gram = ons*1.0821
+      // gibi); bunlar 2025'te elle yazılmış yaklaşık değerler ve kuyumcu
+      // marjı değiştikçe sapıyor. Yalnız sunucuya hiç ulaşılamadığında —
+      // uzun süre çevrimdışı kalmış cihazda — grafiğin tamamen boş
+      // kalmaması için tutuluyor.
+      if (sunucuGecmisiTamam) return;
+
       List<String> allDates = assetHistory.keys.toList()..sort();
       if (allDates.isEmpty) return;
 
@@ -1082,7 +1115,7 @@ class PiyasaMotoru {
       String timeKey = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
       if (intraDayHistory.isEmpty || intraDayHistory.last["time"] != timeKey) {
         intraDayHistory.add({"time": timeKey, "prices": currentPrices});
-        if (intraDayHistory.length > 288) intraDayHistory.removeAt(0);
+        if (intraDayHistory.length > 600) intraDayHistory.removeAt(0);
         await prefs.setString('intraday_history', jsonEncode(intraDayHistory));
       }
     }

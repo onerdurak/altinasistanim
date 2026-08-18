@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -78,20 +77,14 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
     if (currentPrice <= 0) currentPrice = 1;
 
     if (period == '1G') {
+      // ÖNEMLİ: burada eskiden veri yokken Random() ile dalgalı sahte bir
+      // saatlik seri üretiliyordu — kullanıcı gerçek zannettiği bir grafiğe
+      // bakıyordu. Saatlik kayıt artık sunucuda tutuluyor
+      // (drksistem.com/veri/saatlik.csv ve saatlik-7g.csv, 18 emtianın
+      // tamamı için). Veri yoksa uydurmak yerine boş dönülür; ekranda
+      // "saatlik veri yükleniyor" yazısı görünür.
       if (widget.intraDayHistory.isEmpty) {
-        // Gerçek veri yokken dalgalı saatlik simülasyon oluştur
-        final random = Random();
-        for (int h = 23; h >= 0; h--) {
-          DateTime t = now.subtract(Duration(hours: h));
-          double wave = currentPrice * (1 + (random.nextDouble() - 0.5) * 0.006);
-          result.add({
-            'val': wave,
-            'label': DateFormat('HH:mm').format(t),
-            'dateStr': DateFormat('dd.MM.yyyy HH:mm').format(t)
-          });
-        }
-        // Son nokta güncel fiyat olsun
-        result.last['val'] = currentPrice;
+        return result;
       } else {
         DateTime yesterday = now.subtract(const Duration(hours: 24));
         for (var log in widget.intraDayHistory) {
@@ -362,10 +355,18 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
                             padding: const EdgeInsets.only(
                                 top: 15, right: 0, left: 0, bottom: 0),
                             width: double.infinity,
-                            child: InteractiveChart(
-                                data: chartData,
-                                color: const Color(0xFF00E676),
-                                formatter: format)),
+                            child: chartData.length < 2
+                                ? const Center(
+                                    child: Text(
+                                        'Saatlik veri yükleniyor…',
+                                        style: TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 12,
+                                            letterSpacing: 0.5)))
+                                : InteractiveChart(
+                                    data: chartData,
+                                    color: const Color(0xFF00E676),
+                                    formatter: format)),
                       ],
                     ),
                   ),

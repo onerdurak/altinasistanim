@@ -205,8 +205,12 @@ class _ChangePinPageState extends State<ChangePinPage> {
 }
 
 class AboutPage extends StatelessWidget {
+  /// Uygulamanın kendi sürümü (Surum.uygulama). Eskiden varsayılanı
+  /// '1.0.20' idi ve sunucudan gelen değerle doldurulurdu — ikisi de
+  /// telefondaki gerçek sürümü göstermiyordu.
   final String version;
-  const AboutPage({super.key, this.version = '1.0.20'});
+  final String build;
+  const AboutPage({super.key, this.version = '', this.build = ''});
   Widget _buildGuideSection(IconData icon, String title, String desc) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 25),
@@ -257,9 +261,10 @@ class AboutPage extends StatelessWidget {
                   color: AppTheme.goldMain,
                   fontSize: 22,
                   fontWeight: FontWeight.bold)),
-          Text("Sürüm $version",
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey)),
+          if (version.isNotEmpty)
+            Text(build.isEmpty ? "Sürüm $version" : "Sürüm $version ($build)",
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 40),
           const Text("NASIL KULLANILIR?",
               style: TextStyle(

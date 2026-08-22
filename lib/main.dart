@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 // --- SENİN KLASÖR YAPINA GÖRE DÜZELTİLMİŞ YOLLAR ---
 import 'modeller.dart';
 import 'piyasa_motoru.dart';
+import 'surum.dart';
 import 'sayfalar/ana_ekran.dart';
 import 'sayfalar/detay_sayfalari.dart';
 import 'sayfalar/guvenlik_sayfalari.dart';
@@ -30,6 +31,9 @@ void main() async {
   ));
 
   await initializeDateFormatting('tr_TR', null);
+  // Kendi sürümümüzü derlemeden oku. runApp'ten önce: menü ilk çizildiğinde
+  // hazır olsun, sonradan gelip yazının değişmesi göze çarpardı.
+  await Surum.yukle();
   runApp(const GoldGuardApp());
 }
 
@@ -313,13 +317,21 @@ class _MainLayoutState extends State<MainLayout> {
                             color: AppTheme.goldMain,
                             fontSize: 18,
                             fontWeight: FontWeight.bold)),
-                    Text(
-                        _motor.sheetVersion.isNotEmpty
-                            ? "Sürüm: ${_motor.sheetVersion}"
-                            : "Sürüm: 1.0.20",
-                        style: const TextStyle(
-                            color: Color(0x80FFFFFF), fontSize: 12))
+                    // Kendi sürümümüz — sunucununki DEĞİL. Sunucudan gelen
+                    // değer artık "en son yayınlanan sürüm" anlamına
+                    // geliyor ve yalnız aşağıdaki güncelleme satırında
+                    // kullanılıyor.
+                    if (Surum.uygulama.isNotEmpty)
+                      Text("Sürüm: ${Surum.uygulama}",
+                          style: const TextStyle(
+                              color: Color(0x80FFFFFF), fontSize: 12)),
                   ]))),
+          // Güncelleme satırı başlığın İÇİNE konmadı: DrawerHeader sabit
+          // yükseklikte, oraya bir öğe daha eklemek taşmaya yol açıyordu.
+          // Burada hem taşma riski yok (aşağıdaki Spacer boşluğu yutuyor)
+          // hem de tam genişlikte olduğu için daha görünür.
+          if (Surum.guncellemeVar(_motor.sheetVersion))
+            _GuncellemeSatiri(yeniSurum: _motor.sheetVersion),
           ListTile(
               leading:
                   const Icon(Icons.menu_book_rounded, color: AppTheme.goldMain),
@@ -327,10 +339,9 @@ class _MainLayoutState extends State<MainLayout> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(context,
-                    MaterialPageRoute(builder: (c) => AboutPage(
-                        version: _motor.sheetVersion.isNotEmpty
-                            ? _motor.sheetVersion
-                            : '1.0.20')));
+                    MaterialPageRoute(
+                        builder: (c) => AboutPage(
+                            version: Surum.uygulama, build: Surum.yapi)));
               }),
           ListTile(
               leading: const Icon(Icons.chat_bubble_outline,
@@ -588,5 +599,39 @@ class _KeepAlivePageState extends State<KeepAlivePage>
   Widget build(BuildContext context) {
     super.build(context);
     return widget.child;
+  }
+}
+
+/// Menüdeki "Güncelleme var" satırı.
+///
+/// Bilerek **kendiliğinden açılmıyor**: uygulamanın geri kalanında da
+/// hiçbir şey davetsiz açılmıyor (destek butonu bunun için en alta
+/// konmuştu). Kullanıcı menüyü açtığında görür, dokunursa mağazaya
+/// gider; dokunmazsa hiçbir şey olmaz. Kapatılabilir bir uyarı da
+/// yapılmadı — kalıcı ama sessiz olması yeterli.
+class _GuncellemeSatiri extends StatelessWidget {
+  final String yeniSurum;
+  const _GuncellemeSatiri({required this.yeniSurum});
+
+  @override
+  Widget build(BuildContext context) {
+    final adres = Surum.magazaAdresi();
+    // Mağazası olmayan platformda (masaüstü/web) satır hiç çizilmez:
+    // gidilecek yer yokken "güncelle" demek anlamsız.
+    if (adres == null) return const SizedBox.shrink();
+    return ListTile(
+      leading: const Icon(Icons.arrow_circle_up_rounded,
+          color: AppTheme.goldMain),
+      title: const Text("Güncelleme var",
+          style: TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text("Yeni sürüm: $yeniSurum",
+          style: const TextStyle(color: Colors.white54, fontSize: 12)),
+      trailing: const Icon(Icons.chevron_right_rounded,
+          color: Colors.white38, size: 20),
+      onTap: () {
+        Navigator.pop(context);
+        launchUrl(adres, mode: LaunchMode.externalApplication);
+      },
+    );
   }
 }

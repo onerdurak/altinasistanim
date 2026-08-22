@@ -20,6 +20,9 @@ dependencies:
   # Verileri hafızada tutmak için
   shared_preferences: ^2.2.2
   url_launcher: ^6.3.0
+  # Uygulamanin kendi surumunu derlemeden okumak icin. Oncesinde surum
+  # yazisi sunucudan geliyordu (canli.csv 21. satir) ve kayabiliyordu.
+  package_info_plus: ^10.2.1
   local_auth: ^3.0.1
   # Geliştiriciye Destek Ol ödüllü reklamı (ücretli satın almalar 1.0.28'de kaldırıldı)
   google_mobile_ads: ^9.0.0

@@ -73,7 +73,19 @@ class AssetType {
   double baseBuyPrice;
   double sellPrice;
   double buyPrice;
+  /// Yüzdelik değişimler. Üçü de **kendi geçmiş verimizden** hesaplanır
+  /// (PiyasaMotoru._degisimleriHesapla); dış kaynağın "Change" alanı
+  /// kullanılmaz — o alan ons için hep 0 dönüyordu ve neye göre
+  /// kıyasladığı belirsizdi.
+  ///
+  /// [changeRate] 24 saatlik değişim; kullanıcının her ekranda ilk
+  /// gördüğü değer budur. [change7d] ve [change30d] yalnız varlık detay
+  /// sayfasında, istendiğinde açılır.
   double changeRate;
+  /// null = henüz hesaplanamadı (geçmiş inmedi). 0 ise gerçekten
+  /// değişmemiş demektir — ikisini ayırmak için nullable.
+  double? change7d;
+  double? change30d;
   double usdPrice;
   double baseUsdPrice;
   bool isDollarBase;
@@ -86,6 +98,8 @@ class AssetType {
       this.sellPrice = 0,
       this.buyPrice = 0,
       this.changeRate = 0,
+      this.change7d,
+      this.change30d,
       this.usdPrice = 0,
       this.baseUsdPrice = 0,
       this.isDollarBase = false,
@@ -114,4 +128,17 @@ class AssetType {
   }
 
   String get label => shortName;
+
+  /// Pencere anahtarına göre değişim: 'g24' | 'g7' | 'g30'.
+  /// Sunucudaki degisim.csv sütun adlarıyla birebir aynı.
+  double? degisim(String pencere) {
+    switch (pencere) {
+      case 'g7':
+        return change7d;
+      case 'g30':
+        return change30d;
+      default:
+        return changeRate;
+    }
+  }
 }

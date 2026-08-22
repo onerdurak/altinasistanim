@@ -40,6 +40,10 @@ class PiyasaMotoru {
   Map<String, Map<String, dynamic>> assetHistory = {};
   List<Map<String, dynamic>> intraDayHistory = [];
 
+  /// Sunucudan tohum olarak alınan değişim yüzdeleri: {kod: {'g24': %}}.
+  /// Yerel geçmişten hesap yapılamayan pencerelerde kullanılır.
+  final Map<String, Map<String, double>> _sunucuDegisim = {};
+
   /// Sunucudaki günlük geçmiş (gecmis.csv) sağlıklı okunduysa true.
   /// Doğruysa Binance'ten formülle geçmiş **uydurulmaz** — sunucu artık
   /// tüm emtiaların gerçek kapanışını saatlik arşivden yazıyor.
@@ -79,6 +83,12 @@ class PiyasaMotoru {
   // Sunucu tarafında kalıcı saatlik arşivden üretilir (veri-toplayici/arsiv.py).
   static const String _saatlikGenisUrl = '$_veriKoku/saatlik-7g.csv';
 
+  // Sunucunun kendi arşivinden hesapladığı 24s/7g/30g yüzdeleri
+  // (veri-toplayici/degisim.py). Uygulama aynı hesabı yerel geçmişinden
+  // de yapar; bu dosya YALNIZ ilk açılışta, geçmiş henüz inmemişken
+  // tohum olarak çekilir — periyodik çekilmez.
+  static const String _degisimUrl = '$_veriKoku/degisim.csv';
+
   PiyasaMotoru({required this.onUpdate});
 
   /// Portföy değerlerini yeniden hesaplar.
@@ -114,9 +124,20 @@ class PiyasaMotoru {
       await fetchLiveData();
       recalcLiveValues(notify: true);
       _lastFetchTime = DateTime.now();
+      // Sunucunun hesapladığı yüzdeler tohum olarak alınır: ilk kurulumda
+      // gecmis.csv inene kadar 7g/30g boş kalmasın diye. Tek seferlik.
+      _fetchDegisimFromServer();
       // Sheets'ten geçmiş + saatlik verileri çek, sonra boşlukları doldur
-      _fetchHistoricalFromSheets().then((_) => fillHistoricalGaps());
-      _fetchIntraDayFromSheets();
+      // Geçmiş geldiğinde yüzdeler yerel veriyle yeniden hesaplanır.
+      _fetchHistoricalFromSheets().then((_) {
+        fillHistoricalGaps();
+        _degisimleriHesapla();
+        onUpdate();
+      });
+      _fetchIntraDayFromSheets().then((_) {
+        _degisimleriHesapla();
+        onUpdate();
+      });
     });
 
     // 5 dakikada bir veri çek (arada sadece matrix çalışır)
@@ -125,7 +146,12 @@ class PiyasaMotoru {
         _lastFetchTime = DateTime.now();
         // 1G grafiği sunucudaki saatlik kayıttan beslenir; yenilenmezse
         // uygulama açık kaldıkça grafik açılış anındaki saatte donuyordu.
-        _fetchIntraDayFromSheets(genis: true);
+        _fetchIntraDayFromSheets(genis: true).then((_) {
+          // Yeni saat başı kaydı geldiyse 24 saatlik pencere kaydı
+          // değişmiştir; yüzde bayat kalmasın.
+          _degisimleriHesapla();
+          onUpdate();
+        });
       });
     });
     // İlk veri gelene kadar 3 saniye bekle, sonra simulation başlat
@@ -241,6 +267,9 @@ class PiyasaMotoru {
 
       // Her iki kaynak sonrası final güncelleme
       _syncCustomAssets();
+      // Yüzdeler yeni fiyatla yeniden hesaplanmalı: canli.csv'den gelen
+      // 24s değeri (sunucunun hesabı) burada yerel hesapla değiştirilir.
+      _degisimleriHesapla();
       updateDailyHistory();
       saveMarketCache();
       onUpdate();
@@ -251,6 +280,176 @@ class PiyasaMotoru {
         isLoading = false;
         onUpdate();
       }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // YÜZDELİK DEĞİŞİM — kendi verimizden hesaplanır
+  // ------------------------------------------------------------------
+  //
+  // Dış kaynağın "Change" alanı bilerek kullanılmıyor. İki sebebi vardı:
+  // ons için hep 0 dönüyordu (uygulamada değişim hiç görünmüyordu) ve
+  // neye göre kıyasladığı belirsizdi — bizim yayınladığımız, kalibre
+  // edilmiş fiyatla tutarlı olmak zorunda değildi.
+  //
+  // Artık üç pencerenin tamamı elimizdeki geçmişten çıkıyor:
+  //
+  //   24 saat -> intraDayHistory (saatlik kayıt, sunucu arşivinden)
+  //    7 gün  -> assetHistory    (gün kapanışı, gecmis.csv)
+  //   30 gün  -> assetHistory    (gün kapanışı, gecmis.csv)
+  //
+  // Sunucu (veri-toplayici/degisim.py) aynı formülü aynı verilerle
+  // uyguluyor; iki taraf birbirini doğruluyor.
+
+  /// Saatlik referans ararken kabul edilen kayma (sunucudaki
+  /// SAAT_TOLERANSI ile aynı). Kayıt bundan uzaksa "24 saatlik değişim"
+  /// demek doğru olmaz, o pencere boş bırakılır.
+  static const int _saatToleransi = 3;
+
+  /// Günlük referans ararken geriye/ileriye taranacak en fazla gün.
+  static const int _gunToleransi = 3;
+
+  static final DateFormat _saatAnahtari = DateFormat('yyyy-MM-dd HH:mm');
+  static final DateFormat _gunAnahtari = DateFormat('yyyy-MM-dd');
+
+  /// Kıyas fiyatı: **baseSellPrice**, sellPrice değil.
+  /// sellPrice'ı ticker simülasyonu saniyede bir oynatıyor; onunla
+  /// hesaplanan yüzde ekranda sürekli titrerdi.
+  double _kiyasFiyati(AssetType a) =>
+      a.baseSellPrice > 0 ? a.baseSellPrice : a.sellPrice;
+
+  double? _yuzde(double simdiki, double? referans) {
+    if (referans == null || referans <= 0 || simdiki <= 0) return null;
+    return (simdiki - referans) / referans * 100;
+  }
+
+  /// intraDayHistory içinde [hedef] anına en yakın saatlik kaydı bulur.
+  Map<String, double> _saatlikReferans(DateTime hedef) {
+    Map<String, dynamic>? enIyi;
+    Duration? enIyiFark;
+    for (final kayit in intraDayHistory) {
+      final ham = kayit['time'];
+      if (ham is! String) continue;
+      DateTime zaman;
+      try {
+        zaman = _saatAnahtari.parse(ham);
+      } catch (_) {
+        continue;
+      }
+      // Saat başı olmayan yerel kayıtlar referans olmaz — eski sürümlerin
+      // cihazda biriktirdiği anlık görüntüler bunlar.
+      if (zaman.minute != 0) continue;
+      final fark = zaman.difference(hedef).abs();
+      if (enIyiFark == null || fark < enIyiFark) {
+        enIyi = kayit;
+        enIyiFark = fark;
+      }
+    }
+    // Dakika üzerinden: inHours aşağı yuvarladığı için 3sa59dk'lık bir
+    // boşluk "3 saat" sayılır ve sunucudaki saniye bazlı kontrolle
+    // (degisim.py SAAT_TOLERANSI) ayrışırdı.
+    if (enIyi == null || enIyiFark!.inMinutes > _saatToleransi * 60) {
+      return {};
+    }
+    return _fiyatSozlugu(enIyi['prices']);
+  }
+
+  /// assetHistory içinde [gunOnce] gün önceki kapanışı bulur; o gün yoksa
+  /// tolerans içinde en yakın güne düşer. Bugünün kendisi referans olamaz.
+  Map<String, double> _gunlukReferans(DateTime simdi, int gunOnce) {
+    final bugun = DateTime(simdi.year, simdi.month, simdi.day);
+    final hedef = bugun.subtract(Duration(days: gunOnce));
+    for (int kayma = 0; kayma <= _gunToleransi; kayma++) {
+      for (final aday in [
+        hedef.subtract(Duration(days: kayma)),
+        hedef.add(Duration(days: kayma))
+      ]) {
+        if (!aday.isBefore(bugun)) continue;
+        final kayit = assetHistory[_gunAnahtari.format(aday)];
+        if (kayit != null && kayit.isNotEmpty) return _fiyatSozlugu(kayit);
+      }
+    }
+    return {};
+  }
+
+  Map<String, double> _fiyatSozlugu(dynamic ham) {
+    final sonuc = <String, double>{};
+    if (ham is Map) {
+      ham.forEach((k, v) {
+        final d = (v as num?)?.toDouble() ?? 0;
+        if (d > 0) sonuc[k.toString()] = d;
+      });
+    }
+    return sonuc;
+  }
+
+  /// Üç pencereyi de hesaplayıp market'e yazar.
+  /// Yerel geçmişten çıkmayan pencere sunucunun tohumundan doldurulur;
+  /// o da yoksa eski değer korunur (0 yazmak "değişmedi" demek olurdu).
+  void _degisimleriHesapla() {
+    final simdi = DateTime.now();
+
+    var ref24 = _saatlikReferans(simdi.subtract(const Duration(hours: 24)));
+    // Saatlik kayıt henüz 24 saati doldurmadıysa dünün kapanışına düşülür.
+    if (ref24.isEmpty) ref24 = _gunlukReferans(simdi, 1);
+    final ref7 = _gunlukReferans(simdi, 7);
+    final ref30 = _gunlukReferans(simdi, 30);
+
+    for (final a in market) {
+      final fiyat = _kiyasFiyati(a);
+      if (fiyat <= 0) continue;
+      final sunucu = _sunucuDegisim[a.id] ?? const <String, double>{};
+
+      final d24 = _yuzde(fiyat, ref24[a.id]) ?? sunucu['g24'];
+      if (d24 != null) a.changeRate = d24;
+
+      final d7 = _yuzde(fiyat, ref7[a.id]) ?? sunucu['g7'];
+      if (d7 != null) a.change7d = d7;
+
+      final d30 = _yuzde(fiyat, ref30[a.id]) ?? sunucu['g30'];
+      if (d30 != null) a.change30d = d30;
+    }
+  }
+
+  /// Sunucunun hesapladığı yüzdeleri tohum olarak alır.
+  ///
+  /// YALNIZ açılışta bir kez çağrılır. İlk kurulumda gecmis.csv daha
+  /// inmemişken 7g/30g boş kalmasın diye var; geçmiş indikten sonra
+  /// yerel hesap zaten devralıyor. Periyodik çekilmemesinin sebebi
+  /// origin yükü — 5 dakikada bir her cihazdan istek gelmesin.
+  Future<void> _fetchDegisimFromServer() async {
+    try {
+      final response = await http
+          .get(Uri.parse(_degisimUrl))
+          .timeout(const Duration(seconds: 8),
+              onTimeout: () => http.Response('', 408));
+      if (response.statusCode != 200) return;
+
+      final lines = response.body.split('\n');
+      if (lines.length < 2) return;
+      final headers =
+          _parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase()).toList();
+
+      for (int i = 1; i < lines.length; i++) {
+        final line = lines[i].trim();
+        if (line.isEmpty) continue;
+        final cols = _parseCsvLine(line);
+        if (cols.isEmpty) continue;
+        final kod = cols[0].trim().toLowerCase();
+        if (kod.isEmpty) continue;
+        final kalem = <String, double>{};
+        for (int j = 1; j < headers.length && j < cols.length; j++) {
+          final ham = cols[j].trim();
+          if (ham.isEmpty) continue;
+          final deger = double.tryParse(ham);
+          if (deger != null) kalem[headers[j]] = deger;
+        }
+        if (kalem.isNotEmpty) _sunucuDegisim[kod] = kalem;
+      }
+      _degisimleriHesapla();
+      onUpdate();
+    } catch (e) {
+      // Sessizce devam et — yerel hesap zaten çalışıyor
     }
   }
 
@@ -923,6 +1122,10 @@ class PiyasaMotoru {
             a.applyNewPrices(cacheData[a.id]['bs'] ?? 0.0,
                 cacheData[a.id]['bb'] ?? 0.0, cacheData[a.id]['c'] ?? 0.0,
                 nUsd: cacheData[a.id]['usd'] ?? 0.0);
+            // 7g/30g applyNewPrices'ın işi değil (o yalnız fiyat + 24s
+            // taşır); soğuk açılışta boş görünmesinler diye ayrıca yazılır.
+            a.change7d = (cacheData[a.id]['c7'] as num?)?.toDouble();
+            a.change30d = (cacheData[a.id]['c30'] as num?)?.toDouble();
           }
         }
       } catch (e) {}
@@ -937,6 +1140,8 @@ class PiyasaMotoru {
           'bs': a.baseSellPrice,
           'bb': a.baseBuyPrice,
           'c': a.changeRate,
+          'c7': a.change7d,
+          'c30': a.change30d,
           'usd': a.usdPrice
         }
     };

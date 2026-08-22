@@ -28,6 +28,9 @@ class FullScreenAssetPage extends StatefulWidget {
 class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
   String _selectedPeriod = '1A';
   bool _showHistory = false;
+  /// 7 ve 30 günlük değişim bilerek kapalı başlar: kullanıcı ilk bakışta
+  /// her zaman 24 saatlik değeri görsün, uzun pencereleri isterse açsın.
+  bool _showUzunDegisim = false;
   List<Map<String, dynamic>>? _cachedChartData;
   String? _cachedPeriod;
 
@@ -181,6 +184,115 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
     return result;
   }
 
+  // ------------------------------------------------------------------
+  // DEĞİŞİM KARTI
+  // ------------------------------------------------------------------
+  //
+  // Yüzdeler dış kaynaktan gelmiyor; hem uygulama hem sunucu aynı formülü
+  // kendi arşivimize uyguluyor (PiyasaMotoru._degisimleriHesapla ve
+  // veri-toplayici/degisim.py). Eskiden bu sayfada hiç değişim yoktu,
+  // ons ise her yerde %0.00 görünüyordu.
+  //
+  // 24 saat her zaman açık; 7 ve 30 gün dokununca iniyor.
+
+  Color _degisimRengi(double oran) {
+    if (oran > 0) return AppTheme.neonGreen;
+    if (oran < 0) return AppTheme.neonRed;
+    return Colors.white54;
+  }
+
+  /// Değeri hiç hesaplanamamış pencere (geçmiş henüz inmedi) "—" gösterir;
+  /// %0.00 yazmak "değişmedi" demek olurdu, oysa "bilmiyoruz".
+  Widget _degisimDegeri(double? oran, {double fontSize = 15}) {
+    if (oran == null) {
+      return Text("—",
+          style: TextStyle(
+              color: Colors.white38,
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold));
+    }
+    final renk = _degisimRengi(oran);
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      // Tam sıfırda ok çizilmez: yön yok demek, aşağı oku yanıltıcı olur.
+      if (oran != 0)
+        Icon(oran > 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+            color: renk, size: fontSize + 6),
+      Text("%${oran.abs().toStringAsFixed(2)}",
+          style: TextStyle(
+              color: renk, fontSize: fontSize, fontWeight: FontWeight.bold)),
+    ]);
+  }
+
+  Widget _uzunSatir(String baslik, double? oran) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(baslik,
+                style: const TextStyle(
+                    color: Colors.grey, fontSize: 12, letterSpacing: 1.0)),
+            _degisimDegeri(oran, fontSize: 14),
+          ]),
+    );
+  }
+
+  Widget _buildDegisimKarti() {
+    return Container(
+      decoration: BoxDecoration(
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white10)),
+      child: Column(children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            setState(() => _showUzunDegisim = !_showUzunDegisim);
+          },
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("24 SAAT",
+                      style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                          letterSpacing: 1.2)),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    _degisimDegeri(widget.asset.changeRate),
+                    const SizedBox(width: 6),
+                    AnimatedRotation(
+                        turns: _showUzunDegisim ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 220),
+                        child: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: Colors.grey,
+                            size: 20)),
+                  ]),
+                ]),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: _showUzunDegisim
+              ? Column(children: [
+                  const Divider(color: Colors.white10, height: 1),
+                  _uzunSatir("7 GÜN", widget.asset.change7d),
+                  const Divider(color: Colors.white10, height: 1),
+                  _uzunSatir("30 GÜN", widget.asset.change30d),
+                  const SizedBox(height: 4),
+                ])
+              : const SizedBox(width: double.infinity, height: 0),
+        ),
+      ]),
+    );
+  }
+
   Widget _buildPeriodButton(String title, String value) {
     bool isSelected = _selectedPeriod == value;
     return GestureDetector(
@@ -319,7 +431,9 @@ class _FullScreenAssetPageState extends State<FullScreenAssetPage> {
                                 ),
                               ]),
                             ]),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
+                        _buildDegisimKarti(),
+                        const SizedBox(height: 16),
                         Container(
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(

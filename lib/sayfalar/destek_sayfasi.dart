@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../modeller.dart';
+import '../oblok.dart';
 import '../reklam.dart';
 
 /// Geliştiriciye Destek Ol.
@@ -116,6 +117,9 @@ class _SupportDeveloperPageState extends State<SupportDeveloperPage> {
 
         const SizedBox(height: 28),
 
+        // ── OYUNUMUZU İNDİREREK DESTEK ──
+        _buildOblokKarti(),
+
         // Yasal linkler
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -213,6 +217,81 @@ class _SupportDeveloperPageState extends State<SupportDeveloperPage> {
             : Icons.refresh_rounded),
         label: Text(hazir ? "Reklamı İzle" : "Tekrar Dene",
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+      ),
+    );
+  }
+
+  /// Aynı stüdyonun oyunu Oblok'un tanıtım kartı.
+  ///
+  /// Reklam izlemek istemeyen ya da zaten izlemiş kullanıcıya ikinci bir
+  /// destek yolu sunuyor. Dokununca kullanıcının kendi platformunun mağazası
+  /// açılır: Android'de Google Play, iOS'ta App Store.
+  ///
+  /// Kart, altın rengi reklam kartıyla yarışmasın diye gümüş paletle çizildi;
+  /// sayfadaki asıl eylem reklam düğmesi, bu ikincil bir öneri.
+  Widget _buildOblokKarti() {
+    final adres = Oblok.magazaAdresi();
+    // Mağazası olmayan platformda (masaüstü/web) kart hiç çizilmez.
+    // Menüdeki güncelleme satırı da aynı şekilde davranıyor.
+    if (adres == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Material(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => launchUrl(adres, mode: LaunchMode.externalApplication),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border:
+                  Border.all(color: AppTheme.silverDark.withAlpha(120)),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(Oblok.ikon,
+                    width: 58, height: 58, filterQuality: FilterQuality.medium),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Oyunumuzu deneyin",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 3),
+                    const Text(
+                      "${Oblok.tamAd} — 8×8 mücevher blok bulmacamız. "
+                      "Ücretsiz indirmeniz de bize destek olur.",
+                      style: TextStyle(
+                          color: Colors.white60, fontSize: 12.5, height: 1.4),
+                    ),
+                    const SizedBox(height: 9),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.download_rounded,
+                          size: 15, color: AppTheme.silverLight),
+                      const SizedBox(width: 5),
+                      Text(Oblok.magazaEtiketi,
+                          style: const TextStyle(
+                              color: AppTheme.silverLight,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600)),
+                    ]),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  color: Colors.white38, size: 22),
+            ]),
+          ),
+        ),
       ),
     );
   }

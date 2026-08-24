@@ -209,8 +209,10 @@ class AboutPage extends StatelessWidget {
   /// '1.0.20' idi ve sunucudan gelen değerle doldurulurdu — ikisi de
   /// telefondaki gerçek sürümü göstermiyordu.
   final String version;
-  final String build;
-  const AboutPage({super.key, this.version = '', this.build = ''});
+  /// Yapı numarası (pubspec'teki `+67`). Alan adı `build` OLAMAZ:
+  /// StatelessWidget'ın `build` metoduyla çakışıp derlemeyi kırar.
+  final String yapi;
+  const AboutPage({super.key, this.version = '', this.yapi = ''});
   Widget _buildGuideSection(IconData icon, String title, String desc) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 25),
@@ -262,7 +264,7 @@ class AboutPage extends StatelessWidget {
                   fontSize: 22,
                   fontWeight: FontWeight.bold)),
           if (version.isNotEmpty)
-            Text(build.isEmpty ? "Sürüm $version" : "Sürüm $version ($build)",
+            Text(yapi.isEmpty ? "Sürüm $version" : "Sürüm $version ($yapi)",
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 40),

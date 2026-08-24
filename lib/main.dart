@@ -341,7 +341,7 @@ class _MainLayoutState extends State<MainLayout> {
                 Navigator.push(context,
                     MaterialPageRoute(
                         builder: (c) => AboutPage(
-                            version: Surum.uygulama, build: Surum.yapi)));
+                            version: Surum.uygulama, yapi: Surum.yapi)));
               }),
           ListTile(
               leading: const Icon(Icons.chat_bubble_outline,

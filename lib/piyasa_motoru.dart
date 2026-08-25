@@ -315,8 +315,19 @@ class PiyasaMotoru {
   /// Kıyas fiyatı: **baseSellPrice**, sellPrice değil.
   /// sellPrice'ı ticker simülasyonu saniyede bir oynatıyor; onunla
   /// hesaplanan yüzde ekranda sürekli titrerdi.
-  double _kiyasFiyati(AssetType a) =>
-      a.baseSellPrice > 0 ? a.baseSellPrice : a.sellPrice;
+  ///
+  /// USD bazlı varlıklarda (btc/eth/ons) kıyas **USD** üzerinden yapılır.
+  /// Geçmişin her iki kaynağı da bu varlıkları USD saklıyor (sunucunun
+  /// saatlik arşivi ile updateDailyHistory), oysa baseSellPrice TL'dir.
+  /// İkisini karşılaştırmak payı kur kadar şişiriyor ve BTC'de %4700 gibi
+  /// saçma bir 24 saatlik değişim üretiyordu.
+  double _kiyasFiyati(AssetType a) {
+    if (a.isDollarBase) {
+      final usd = a.baseUsdPrice > 0 ? a.baseUsdPrice : a.usdPrice;
+      if (usd > 0) return usd;
+    }
+    return a.baseSellPrice > 0 ? a.baseSellPrice : a.sellPrice;
+  }
 
   double? _yuzde(double simdiki, double? referans) {
     if (referans == null || referans <= 0 || simdiki <= 0) return null;
@@ -615,6 +626,17 @@ class PiyasaMotoru {
         'usd': 500, 'eur': 500, 'gbp': 500, 'silver': 1000,
       };
 
+      // btc/eth/ons sunucuda USD olarak yayınlanır (veri-toplayici
+      // CoinGecko'yu vs_currencies=usd ile çeker), oysa sellPrice TL
+      // demektir — portföy değeri onunla çarpılıyor. Dönüştürmeden
+      // yazılırsa kasadaki BTC kur katı kadar düşük görünür ve yüzde
+      // hesabının tabanı Binance'ten gelen TL fiyatla tutarsız kalır.
+      // Hangisinin sonuncu yazdığı ağ hızına bağlı olduğu için hata
+      // cihazdan cihaza değişiyordu.
+      double usdKuru = currentUsdRate > 0
+          ? currentUsdRate
+          : (sheetData['usd']?['sell'] ?? 0.0);
+
       for (var asset in market) {
         if (!sheetsIds.contains(asset.id)) continue;
         var data = sheetData[asset.id];
@@ -625,6 +647,14 @@ class PiyasaMotoru {
         if (sell <= 0) continue;
         // Mantık kontrolü: döviz kurları aşırı yüksekse hatalı parse
         if (_maxSanity.containsKey(asset.id) && sell > _maxSanity[asset.id]!) continue;
+        if (asset.isDollarBase) {
+          // Kur yoksa çeviremeyiz; Binance'in yazdığı doğru TL fiyatı
+          // bozmaktansa bu turu atla.
+          if (usdKuru <= 0) continue;
+          double tl = sell * usdKuru;
+          asset.applyNewPrices(tl, tl, change, nUsd: sell);
+          continue;
+        }
         if (buy <= 0) buy = sell * 0.98;
         asset.applyNewPrices(sell, buy, change);
       }

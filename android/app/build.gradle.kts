@@ -50,6 +50,16 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            // R8: kod kucultme + kullanilmayan kaynaklarin atilmasi.
+            // Play Console "R8 optimizasyonu ile bellegi ve performansi artirin"
+            // diye uyariyordu; onceden hic ayarlanmamisti, yani kapaliydi.
+            // Kurallar proguard-rules.pro icinde, gerekceleriyle birlikte.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

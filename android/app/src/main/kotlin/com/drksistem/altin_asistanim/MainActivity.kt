@@ -4,13 +4,16 @@ import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
-import androidx.core.view.WindowCompat
 import io.flutter.embedding.android.FlutterFragmentActivity
 
 class MainActivity: FlutterFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Modern edge-to-edge — sadece NON-deprecated API'ler kullanir
-        // Status bar ve navigation bar'i seffaf yapar
+        // Modern edge-to-edge: status ve navigation bar'i seffaf yapar.
+        //
+        // Burada VAKTIYLE bir de WindowCompat.setDecorFitsSystemWindows(window,
+        // false) cagrisi vardi. Ikisi birden gereksizdi: enableEdgeToEdge zaten
+        // ayni isi yapiyor. Ustelik setDecorFitsSystemWindows artik desteklenmiyor
+        // ve Play Console "desteklenmeyen API" uyarisi veriyordu. Geri EKLEME.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
                 Color.TRANSPARENT,
@@ -22,7 +25,5 @@ class MainActivity: FlutterFragmentActivity() {
             )
         )
         super.onCreate(savedInstanceState)
-        // Sistem bar'lari icerigin altinda kalsin
-        WindowCompat.setDecorFitsSystemWindows(window, false)
     }
 }

@@ -27,12 +27,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- AdMob Android App ID — lib/reklam_kimlik.dart → appIdAndroidProd ile
-             BİREBİR aynı olmalı. SDK App ID'yi BU dosyadan, reklam birimi ID'sini
-             reklam_kimlik.dart'tan okur. -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-8001492105518772~7803643402" />
     </application>
     
     <queries>
